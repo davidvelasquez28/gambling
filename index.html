@@ -48,7 +48,14 @@
   .egroup{margin-bottom:18px}
   .egroup>h3{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--bone);margin:0 0 10px;display:flex;align-items:center;gap:9px}
   .egroup>h3::before{content:"";width:8px;height:8px;background:var(--cinnabar);border-radius:50%}
-  .erow{display:grid;grid-template-columns:1fr 170px 34px;gap:10px;margin-bottom:9px;align-items:end}
+  .erow{display:grid;grid-template-columns:1fr 150px 138px 34px;gap:10px;margin-bottom:2px;align-items:end}
+  .e-readout{grid-column:1 / -1;font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--muted);display:flex;gap:20px;flex-wrap:wrap;padding:3px 2px 13px}
+  .e-readout b{color:var(--gold);font-weight:700}
+  .e-readout .ro-an b{color:var(--bone)}
+  .e-readout .ro-sep,.e-readout .ro-an{color:var(--muted)}
+  .ro-auto{color:var(--faint);text-transform:uppercase;letter-spacing:.08em;font-size:9px;border:1px solid var(--line);padding:1px 5px;border-radius:10px;margin-left:6px}
+  .py .sub2{color:var(--faint);font-family:"JetBrains Mono",monospace;font-weight:500}
+  td .sub{display:block;font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
   .iconbtn{height:40px;border:1px solid var(--line);background:var(--ink-3);color:var(--muted);border-radius:var(--radius);cursor:pointer;font-size:18px;line-height:1}
   .iconbtn:hover{color:var(--cinnabar-hi);border-color:var(--cinnabar)}
   .addrow{background:transparent;border:1px dashed var(--line);color:var(--muted);font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.08em;padding:9px 14px;border-radius:var(--radius);cursor:pointer;text-transform:uppercase}
@@ -123,7 +130,8 @@
 
   @media (max-width:680px){
     .grid.c2,.grid.c3,.grid.c4{grid-template-columns:1fr}
-    .erow{grid-template-columns:1fr 130px 34px}
+    .erow{grid-template-columns:1fr 1fr 34px}
+    .erow > label.field:first-child{grid-column:1 / -1}
     .pillars{grid-template-columns:repeat(2,1fr)}
   }
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -208,7 +216,7 @@
     <h2 style="margin-top:26px">Personal cycles</h2>
     <div class="tablewrap">
       <table id="numTable">
-        <thead><tr><th>Group</th><th>Name</th><th>Born</th><th>Anchor · age</th><th>Pers. Year — day whole</th><th>Pers. Year — day split</th></tr></thead>
+        <thead><tr><th>Group</th><th>Name</th><th>Born</th><th>Animal</th><th>Life Path</th><th>Personal Year</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -292,6 +300,14 @@ function personalYear(bM,bD,bY,mY,mM,mD){
   const A=bM+bD+yd, B=bM+splitVal(bD)+yd;     // month kept whole (provisional for 2-digit months)
   return {A:fmtTotal(A),B:fmtTotal(B),same:A===B,anchor:ay,age:(bY?ay-bY:null)};
 }
+function lifePath(bM,bD,bY){                    // full birth-date total, both methods
+  const yd=digitSum(bY), A=bM+bD+yd, B=bM+splitVal(bD)+yd;
+  return {A:fmtTotal(A),B:fmtTotal(B),same:A===B};
+}
+function yearAnimalIdx(y,m,d){                  // Chinese zodiac via Lichun (~Feb 4) boundary
+  const solarYear=(m<2||(m===2&&d<4))?y-1:y;
+  return ((solarYear-4)%12+12)%12;             // animal index aligns with branch index
+}
 
 /* =====================================================================
    STORAGE (localStorage on deployed site; in-memory fallback in sandbox)
@@ -330,7 +346,18 @@ $("m-date").value=todayISO();
 
 let editingId=null;   // null = new match; else editing existing id
 
-function entityRow(g,name="",date=""){
+const ANIMAL_OPTS=`<option value="">Auto (Lichun)</option>`+ANIMALS.map((a,i)=>`<option value="${i}">${ANIMAL_EMO[i]} ${a}</option>`).join("");
+function updateRowReadout(row){
+  const v=row.querySelector(".e-date").value, sel=row.querySelector(".e-animal"), out=row.querySelector(".e-readout");
+  if(!v){out.innerHTML="";return;}
+  const [y,m,d]=v.split("-").map(Number);
+  if(!y||!m||!d){out.innerHTML="";return;}
+  const lp=lifePath(m,d,y), lpStr=lp.same?lp.A:(lp.A+" <span class='ro-sep'>·</span> "+lp.B);
+  const auto=yearAnimalIdx(y,m,d), isAuto=sel.value==="", ai=isAuto?auto:+sel.value;
+  out.innerHTML=`<span class="ro-lp">Life&nbsp;Path <b>${lpStr}</b></span>`
+    +`<span class="ro-an">${ANIMAL_EMO[ai]} <b>${ANIMALS[ai]}</b>${isAuto?'<span class="ro-auto">auto</span>':''}</span>`;
+}
+function entityRow(g,name="",date="",animal=""){
   const row=document.createElement("div");row.className="erow";row.dataset.gkey=g.key;
   row.innerHTML=`
     <label class="field">Name / label
@@ -339,8 +366,16 @@ function entityRow(g,name="",date=""){
     <label class="field">${escapeHtml(g.dateLabel)}
       <input type="date" class="e-date" value="${escapeHtml(date)}">
     </label>
-    <button class="iconbtn e-del" title="remove" aria-label="remove">×</button>`;
+    <label class="field">Animal
+      <select class="e-animal">${ANIMAL_OPTS}</select>
+    </label>
+    <button class="iconbtn e-del" title="remove" aria-label="remove">×</button>
+    <div class="e-readout"></div>`;
+  row.querySelector(".e-animal").value=animal||"";
   row.querySelector(".e-del").addEventListener("click",()=>row.remove());
+  row.querySelector(".e-date").addEventListener("input",()=>updateRowReadout(row));
+  row.querySelector(".e-animal").addEventListener("change",()=>updateRowReadout(row));
+  updateRowReadout(row);
   return row;
 }
 function renderEntities(sport,data){
@@ -349,7 +384,7 @@ function renderEntities(sport,data){
     const block=document.createElement("div");block.className="egroup";block.dataset.gkey=g.key;
     block.innerHTML=`<h3>${escapeHtml(g.label)}</h3>`;
     const rowsForGroup=(data||[]).filter(e=>e.gkey===g.key);
-    if(rowsForGroup.length) rowsForGroup.forEach(e=>block.appendChild(entityRow(g,e.name,e.date)));
+    if(rowsForGroup.length) rowsForGroup.forEach(e=>block.appendChild(entityRow(g,e.name,e.date,e.animal||"")));
     else block.appendChild(entityRow(g));
     const add=document.createElement("button");add.className="addrow";add.textContent="+ add "+g.label.toLowerCase().replace(/s$/,"");
     add.addEventListener("click",()=>block.insertBefore(entityRow(g),add));
@@ -366,7 +401,8 @@ function collectForm(){
   document.querySelectorAll("#entities .erow").forEach(r=>{
     const name=r.querySelector(".e-name").value.trim();
     const date=r.querySelector(".e-date").value;
-    if(date) entities.push({gkey:r.dataset.gkey,name:name||"(unnamed)",date});
+    const animal=r.querySelector(".e-animal").value;
+    if(date) entities.push({gkey:r.dataset.gkey,name:name||"(unnamed)",date,animal});
   });
   return {
     id:editingId||("m_"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),
@@ -413,15 +449,18 @@ function renderReading(match){
     match.entities.forEach(e=>{
       const [bY,bM,bD]=e.date.split("-").map(Number);
       const py=personalYear(bM,bD,bY,Y,M,D);
-      const ageStr=py.age!=null?(py.anchor+" · "+py.age):py.anchor;
-      const cellB=py.same?`<span class="py" style="color:var(--faint)">=</span>`:`<span class="py">${py.B}</span>`;
+      const lp=lifePath(bM,bD,bY);
+      const ai=(e.animal!==""&&e.animal!=null)?+e.animal:yearAnimalIdx(bY,bM,bD);
+      const lpStr=lp.same?lp.A:(lp.A+' <span class="sub2">·</span> '+lp.B);
+      const pyStr=py.same?py.A:(py.A+' <span class="sub2">·</span> '+py.B);
+      const ageStr=py.age!=null?(py.anchor+" · age "+py.age):py.anchor;
       tb.insertAdjacentHTML("beforeend",`<tr>
         <td class="grp">${escapeHtml(groupLabel(match.sport,e.gkey))}</td>
         <td>${escapeHtml(e.name)}</td>
         <td class="mono">${e.date}</td>
-        <td class="mono">${ageStr}</td>
-        <td><span class="py">${py.A}</span></td>
-        <td>${cellB}</td></tr>`);
+        <td>${ANIMAL_EMO[ai]} ${ANIMALS[ai]}</td>
+        <td><span class="py">${lpStr}</span></td>
+        <td><span class="py">${pyStr}</span><span class="sub">${ageStr}</span></td></tr>`);
     });
   }
   $("reading").style.display="block";
