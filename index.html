@@ -198,6 +198,18 @@
         </label>
       </div>
     </details>
+    <div id="fixtureBazi" style="margin-top:20px">
+      <p class="eyebrow">BaZi · four pillars of the match</p>
+      <p class="chart-meta" id="chartMeta"></p>
+      <div class="pillars" id="pillars"></div>
+      <div class="legend">
+        <span><i style="background:var(--wood)"></i>Wood 木</span>
+        <span><i style="background:var(--fire)"></i>Fire 火</span>
+        <span><i style="background:var(--earth)"></i>Earth 土</span>
+        <span><i style="background:var(--metal)"></i>Metal 金</span>
+        <span><i style="background:var(--water)"></i>Water 水</span>
+      </div>
+    </div>
   </div>
 
   <div class="card">
@@ -216,18 +228,7 @@
   <!-- ===================== READING ===================== -->
   <div class="card" id="reading">
     <p class="eyebrow">The reading</p>
-    <h2 id="readingTitle">Four pillars</h2>
-    <p class="chart-meta" id="chartMeta"></p>
-    <div class="pillars" id="pillars"></div>
-    <div class="legend">
-      <span><i style="background:var(--wood)"></i>Wood 木</span>
-      <span><i style="background:var(--fire)"></i>Fire 火</span>
-      <span><i style="background:var(--earth)"></i>Earth 土</span>
-      <span><i style="background:var(--metal)"></i>Metal 金</span>
-      <span><i style="background:var(--water)"></i>Water 水</span>
-    </div>
-
-    <h2 style="margin-top:26px">Personal cycles</h2>
+    <h2 id="readingTitle">Personal cycles</h2>
     <div class="tablewrap">
       <table id="numTable">
         <thead><tr><th>Group</th><th>Name</th><th>Born</th><th>Animal</th><th>Life Path</th><th>Personal Year</th></tr></thead>
@@ -438,7 +439,11 @@ function renderEntities(sport,data){
 }
 renderEntities("soccer");
 $("m-sport").addEventListener("change",()=>renderEntities($("m-sport").value));
-$("m-date").addEventListener("change",()=>document.querySelectorAll("#entities .erow").forEach(r=>r._refreshStats&&r._refreshStats()));
+$("m-date").addEventListener("change",()=>{renderFixtureBazi();document.querySelectorAll("#entities .erow").forEach(r=>r._refreshStats&&r._refreshStats());});
+$("m-time").addEventListener("input",renderFixtureBazi);
+$("m-solar").addEventListener("input",renderFixtureBazi);
+$("m-boundary").addEventListener("change",renderFixtureBazi);
+$("m-override").addEventListener("change",renderFixtureBazi);
 
 function collectForm(){
   const sport=$("m-sport").value;
@@ -469,24 +474,30 @@ function pillarHTML(tag,p,key,overrideBranch){
     <div class="animal">${ANIMAL_EMO[br]} <b>${ANIMALS[br]}</b></div></div>`;
 }
 
+function readingInputs(){
+  const d=$("m-date").value; if(!d) return null;
+  const [Y,M,D]=d.split("-").map(Number);
+  const [hh,mm]=($("m-time").value||"00:00").split(":").map(Number);
+  return {Y,M,D,hh,mm,solar:parseInt($("m-solar").value||"0",10),boundary:$("m-boundary").value,override:$("m-override").value};
+}
+function renderFixtureBazi(){
+  const box=$("fixtureBazi"), inp=readingInputs();
+  if(!inp){box.style.display="none";return;}
+  box.style.display="block";
+  const c=fullChart(inp.Y,inp.M,inp.D,inp.hh,inp.mm,inp.solar,inp.boundary), ov=inp.override;
+  $("chartMeta").innerHTML=
+     `BaZi day <b>${STEMS[c.day.stem]}-${BRANCH[c.day.branch]} · ${ANIMALS[c.day.branch]}</b>`
+    +` &nbsp;·&nbsp; BaZi hour <b>${STEMS[c.hour.stem]}-${BRANCH[c.hour.branch]} · ${ANIMALS[c.hour.branch]}</b>`
+    +(inp.solar?` &nbsp;·&nbsp; solar-adj <b>${pad(c.adjHour)}:${pad(c.adjMin)}</b>`:``)
+    +(ov!==""&&ov!=null?` &nbsp;·&nbsp; hour animal → <b>${ANIMALS[+ov]}</b>`:``);
+  $("pillars").innerHTML=
+     pillarHTML("Year 年",c.year,false)+pillarHTML("Month 月",c.month,false)
+    +pillarHTML("Day 日",c.day,true)+pillarHTML("Hour 时",c.hour,true,ov);
+}
 function renderReading(match){
   if(!match.date){toast("Set the match date first");return false;}
   const [Y,M,D]=match.date.split("-").map(Number);
-  const [hh,mm]=(match.time||"00:00").split(":").map(Number);
-  const c=fullChart(Y,M,D,hh,mm,match.solar||0,match.boundary||"0");
-  const ov=match.override;
-
-  $("readingTitle").textContent="Four pillars · "+match.name;
-  $("chartMeta").innerHTML=
-    `Match <b>${match.date}</b> · start <b>${pad(hh)}:${pad(mm)}</b>`
-    +(match.solar?` · solar-adj <b>${pad(c.adjHour)}:${pad(c.adjMin)}</b>`:``)
-    +`<br>BaZi day <b>${STEMS[c.day.stem]}-${BRANCH[c.day.branch]} · ${ANIMALS[c.day.branch]}</b>`
-    +` &nbsp;·&nbsp; BaZi hour <b>${STEMS[c.hour.stem]}-${BRANCH[c.hour.branch]} · ${ANIMALS[c.hour.branch]}</b>`
-    +(ov!==""&&ov!=null?` &nbsp;·&nbsp; hour animal overridden → <b>${ANIMALS[+ov]}</b>`:``);
-  $("pillars").innerHTML=
-    pillarHTML("Year 年",c.year,false)+pillarHTML("Month 月",c.month,false)+
-    pillarHTML("Day 日",c.day,true)+pillarHTML("Hour 时",c.hour,true,ov);
-
+  $("readingTitle").textContent="Personal cycles · "+match.name;
   const tb=$("numTable").querySelector("tbody");tb.innerHTML="";
   if(!match.entities.length){
     tb.innerHTML=`<tr><td colspan="6" class="pending">No birthdays entered.</td></tr>`;
@@ -549,6 +560,7 @@ function openMatch(id){
   $("m-name").value=m.name;$("m-sport").value=m.sport;$("m-date").value=m.date;$("m-time").value=m.time;
   $("m-override").value=m.override||"";$("m-solar").value=m.solar||0;$("m-boundary").value=m.boundary||"0";
   renderEntities(m.sport,m.entities);
+  renderFixtureBazi();
   renderReading(m);
   window.scrollTo({top:0,behavior:"smooth"});
 }
@@ -556,7 +568,7 @@ function newMatch(){
   editingId=null;$("wsMode").textContent="New match";
   $("m-name").value="";$("m-sport").value="soccer";$("m-date").value=todayISO();$("m-time").value="20:00";
   $("m-override").value="";$("m-solar").value="0";$("m-boundary").value="0";
-  renderEntities("soccer");$("reading").style.display="none";
+  renderEntities("soccer");renderFixtureBazi();$("reading").style.display="none";
 }
 
 $("btnRead").addEventListener("click",()=>renderReading(collectForm()));
@@ -588,6 +600,7 @@ $("importFile").addEventListener("change",e=>{
   r.readAsText(f);
 });
 
+renderFixtureBazi();
 renderLibrary();
 </script>
 </body>
