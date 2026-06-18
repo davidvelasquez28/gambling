@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ledger of Stems — Numerology &amp; BaZi Betting Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink:#14110e;          /* lacquer black-brown */
+    --ink-2:#1c1813;        /* raised panel */
+    --ink-3:#241f18;        /* input wells */
+    --line:#3a3327;         /* hairline */
+    --bone:#ede6d6;         /* primary text */
+    --muted:#9a8f7e;        /* secondary text */
+    --cinnabar:#c8453b;     /* seal red */
+    --cinnabar-hi:#e25a4d;
+    --gold:#c9a24b;         /* almanac gold */
+    /* five elements */
+    --wood:#5fb874;
+    --fire:#e2554a;
+    --earth:#d8a441;
+    --metal:#c7d0d9;
+    --water:#5b8def;
+    --radius:3px;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;background:var(--ink);color:var(--bone);
+    font-family:"Inter",system-ui,sans-serif;line-height:1.5;
+    background-image:radial-gradient(60rem 40rem at 80% -10%, rgba(200,69,59,.08), transparent 60%),
+                     radial-gradient(50rem 40rem at -10% 110%, rgba(201,162,75,.06), transparent 60%);
+    min-height:100vh;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:clamp(18px,4vw,40px) clamp(14px,4vw,32px) 80px}
+
+  /* ---------- masthead ---------- */
+  header.mast{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:6px}
+  .seal{display:flex;align-items:center;gap:14px}
+  .seal .chop{width:46px;height:46px;flex:0 0 auto;border:2px solid var(--cinnabar);border-radius:6px;
+    display:grid;place-items:center;color:var(--cinnabar);font-family:"Fraunces",serif;font-weight:900;
+    font-size:26px;background:rgba(200,69,59,.07);transform:rotate(-2deg)}
+  .seal h1{font-family:"Fraunces",serif;font-weight:900;font-size:clamp(26px,4.6vw,40px);
+    letter-spacing:-.01em;margin:0;line-height:.98}
+  .seal p{margin:3px 0 0;color:var(--muted);font-size:12.5px;letter-spacing:.14em;text-transform:uppercase}
+  .ledger-meta{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);text-align:right}
+  .ledger-meta b{color:var(--gold);font-weight:700}
+
+  /* ---------- tabs ---------- */
+  nav.tabs{display:flex;gap:0;margin:22px 0 26px;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  nav.tabs button{flex:1;background:transparent;border:0;border-right:1px solid var(--line);color:var(--muted);
+    font-family:"JetBrains Mono",monospace;font-size:13px;letter-spacing:.08em;text-transform:uppercase;
+    padding:13px 10px;cursor:pointer;transition:background .15s,color .15s}
+  nav.tabs button:last-child{border-right:0}
+  nav.tabs button:hover{color:var(--bone);background:rgba(237,230,214,.04)}
+  nav.tabs button[aria-selected="true"]{color:var(--ink);background:var(--gold);font-weight:700}
+  nav.tabs button:focus-visible{outline:2px solid var(--cinnabar-hi);outline-offset:-2px}
+
+  /* ---------- panels / cards ---------- */
+  .panel{display:none}
+  .panel.active{display:block;animation:rise .35s ease both}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .card{background:var(--ink-2);border:1px solid var(--line);border-radius:var(--radius);
+    padding:clamp(16px,3vw,24px);margin-bottom:18px}
+  .card > .eyebrow{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--gold);margin:0 0 2px}
+  .card > h2{font-family:"Fraunces",serif;font-weight:600;font-size:21px;margin:0 0 14px}
+  .card .hint{color:var(--muted);font-size:12.5px;margin:-8px 0 16px}
+
+  /* ---------- form fields ---------- */
+  .grid{display:grid;gap:14px}
+  .grid.cols-2{grid-template-columns:repeat(2,1fr)}
+  .grid.cols-3{grid-template-columns:repeat(3,1fr)}
+  label.field{display:flex;flex-direction:column;gap:6px;font-size:11px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);font-weight:600}
+  input,select{background:var(--ink-3);border:1px solid var(--line);border-radius:var(--radius);
+    color:var(--bone);font-family:"JetBrains Mono",monospace;font-size:14px;padding:10px 11px;width:100%}
+  input::placeholder{color:#6b6253}
+  input:focus,select:focus{outline:2px solid var(--cinnabar);outline-offset:-1px;border-color:var(--cinnabar)}
+  input[type="date"],input[type="time"]{color-scheme:dark}
+
+  /* entity groups */
+  .egroup{margin-bottom:20px}
+  .egroup > h3{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--bone);margin:0 0 10px;display:flex;align-items:center;gap:9px}
+  .egroup > h3::before{content:"";width:8px;height:8px;background:var(--cinnabar);border-radius:50%}
+  .erow{display:grid;grid-template-columns:1fr 170px 34px;gap:10px;margin-bottom:9px;align-items:end}
+  .erow .field{flex:1}
+  .iconbtn{height:40px;border:1px solid var(--line);background:var(--ink-3);color:var(--muted);
+    border-radius:var(--radius);cursor:pointer;font-size:18px;line-height:1}
+  .iconbtn:hover{color:var(--cinnabar-hi);border-color:var(--cinnabar)}
+  .addrow{background:transparent;border:1px dashed var(--line);color:var(--muted);font-family:"JetBrains Mono",monospace;
+    font-size:12px;letter-spacing:.08em;padding:9px 14px;border-radius:var(--radius);cursor:pointer;text-transform:uppercase}
+  .addrow:hover{color:var(--gold);border-color:var(--gold)}
+
+  .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px}
+  .btn{font-family:"JetBrains Mono",monospace;font-size:13px;letter-spacing:.08em;text-transform:uppercase;
+    border-radius:var(--radius);padding:13px 22px;cursor:pointer;border:1px solid transparent;font-weight:700}
+  .btn.primary{background:var(--cinnabar);color:#fff7f2}
+  .btn.primary:hover{background:var(--cinnabar-hi)}
+  .btn.ghost{background:transparent;border-color:var(--line);color:var(--muted)}
+  .btn.ghost:hover{color:var(--bone);border-color:var(--bone)}
+  .btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+  /* ---------- four pillars chart (signature) ---------- */
+  .chart-meta{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted);margin:0 0 16px}
+  .chart-meta b{color:var(--bone)}
+  .pillars{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:8px}
+  .pillar{border:1px solid var(--line);border-radius:var(--radius);background:var(--ink-3);
+    padding:12px 8px 14px;text-align:center;position:relative}
+  .pillar .ptag{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:10px}
+  .pillar.key{box-shadow:inset 0 0 0 1px var(--gold);border-color:var(--gold)}
+  .pillar.key .ptag{color:var(--gold)}
+  .glyph{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(26px,7vw,40px);line-height:1.04}
+  .glyph .rom{display:block;font-family:"JetBrains Mono",monospace;font-size:10.5px;font-weight:500;
+    letter-spacing:.06em;color:var(--muted);margin-top:1px;text-transform:uppercase}
+  .stem-cn{display:block}
+  .branch-cn{display:block;margin-top:6px;padding-top:8px;border-top:1px dotted var(--line)}
+  .animal{font-family:"Inter";font-size:11.5px;color:var(--muted);margin-top:7px;letter-spacing:.04em}
+  .animal b{color:var(--bone);font-weight:600}
+  /* element colors */
+  .el-wood{color:var(--wood)} .el-fire{color:var(--fire)} .el-earth{color:var(--earth)}
+  .el-metal{color:var(--metal)} .el-water{color:var(--water)}
+
+  .legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:14px;font-family:"JetBrains Mono",monospace;
+    font-size:11px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:9px;height:9px;border-radius:2px;display:inline-block}
+
+  /* ---------- numerology table ---------- */
+  .tablewrap{overflow-x:auto;margin-top:4px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:520px}
+  th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line)}
+  th{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);font-weight:500}
+  td.name{font-weight:500}
+  td.grp{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .num{font-family:"Fraunces",serif;font-weight:900;font-size:19px;display:inline-grid;place-items:center;
+    width:30px;height:30px;border-radius:50%;border:1px solid var(--line);color:var(--gold)}
+  tbody tr:hover td{background:rgba(237,230,214,.03)}
+
+  .placeholder{color:var(--muted);font-size:13.5px}
+  .placeholder code{font-family:"JetBrains Mono",monospace;color:var(--gold)}
+
+  details.adv{margin-top:6px;border-top:1px dotted var(--line);padding-top:14px}
+  details.adv summary{cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--muted)}
+  details.adv summary:hover{color:var(--gold)}
+  details.adv .grid{margin-top:14px}
+
+  .note{font-size:11.5px;color:var(--muted);line-height:1.55;margin-top:14px;
+    border-left:2px solid var(--line);padding-left:12px}
+  .note b{color:var(--gold);font-weight:600}
+
+  footer{margin-top:34px;border-top:1px solid var(--line);padding-top:16px;color:var(--muted);
+    font-size:11px;font-family:"JetBrains Mono",monospace;line-height:1.7}
+
+  @media (max-width:680px){
+    .grid.cols-3{grid-template-columns:1fr}
+    .grid.cols-2{grid-template-columns:1fr}
+    .erow{grid-template-columns:1fr 130px 34px}
+    .pillars{grid-template-columns:repeat(2,1fr)}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div class="seal">
+      <div class="chop">支</div>
+      <div>
+        <h1>Ledger of Stems</h1>
+        <p>Numerology &amp; BaZi betting console</p>
+      </div>
+    </div>
+    <div class="ledger-meta" id="ledgerMeta">
+      reading drawn<br><b id="nowStamp">—</b>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Sport">
+    <button role="tab" aria-selected="true" data-tab="soccer">Soccer</button>
+    <button role="tab" aria-selected="false" data-tab="tennis">Tennis</button>
+    <button role="tab" aria-selected="false" data-tab="other">Other</button>
+  </nav>
+
+  <!-- ============ SOCCER ============ -->
+  <section class="panel active" id="panel-soccer" role="tabpanel">
+
+    <div class="card">
+      <p class="eyebrow">Step 1 · the match</p>
+      <h2>When is the whistle</h2>
+      <p class="hint">Kickoff date and local clock time. The four pillars are read off this moment.</p>
+      <div class="grid cols-3">
+        <label class="field">Match date
+          <input type="date" id="soccer-date">
+        </label>
+        <label class="field">Kickoff time
+          <input type="time" id="soccer-time" value="20:00">
+        </label>
+        <label class="field">Override animal <span style="text-transform:none;letter-spacing:0;color:#6b6253">(optional)</span>
+          <select id="soccer-override">
+            <option value="">— use computed —</option>
+          </select>
+        </label>
+      </div>
+      <details class="adv">
+        <summary>Advanced · solar time &amp; day boundary</summary>
+        <div class="grid cols-2">
+          <label class="field">Solar-time offset (min)
+            <input type="number" id="soccer-solar" value="0" step="1" placeholder="0">
+          </label>
+          <label class="field">Day boundary
+            <select id="soccer-boundary">
+              <option value="0">Midnight (00:00)</option>
+              <option value="23">Start of Zi hour (23:00)</option>
+            </select>
+          </label>
+        </div>
+        <p class="note">BaZi purists shift clock time to <b>true solar time</b> (longitude + equation of time) before reading the hour. Add that correction in minutes if you want it; most kickoffs sit far from an hour boundary, so it rarely changes the branch. The day-boundary toggle only matters for kickoffs between 23:00 and midnight.</p>
+      </details>
+    </div>
+
+    <div class="card">
+      <p class="eyebrow">Step 2 · the people &amp; the place</p>
+      <h2>Birthdays to weigh</h2>
+      <p class="hint">For countries, use the founding / national day. Each date yields a Personal Year, Month, and Day for the match date.</p>
+
+      <div class="egroup" data-group="Coach" id="grp-coach">
+        <h3>Coaches</h3>
+      </div>
+      <button class="addrow" data-add="coach">+ add coach</button>
+
+      <div class="egroup" data-group="Country" id="grp-country" style="margin-top:22px">
+        <h3>Countries</h3>
+      </div>
+      <button class="addrow" data-add="country">+ add country</button>
+
+      <div class="egroup" data-group="Player" id="grp-player" style="margin-top:22px">
+        <h3>Top players</h3>
+      </div>
+      <button class="addrow" data-add="player">+ add player</button>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" data-read="soccer">Read the chart</button>
+      <button class="btn ghost" data-clear="soccer">Clear</button>
+    </div>
+
+    <div class="card" id="soccer-out" style="margin-top:18px;display:none">
+      <p class="eyebrow">The reading</p>
+      <h2>Four pillars of the match</h2>
+      <p class="chart-meta" id="soccer-chartmeta"></p>
+      <div class="pillars" id="soccer-pillars"></div>
+      <div class="legend">
+        <span><i style="background:var(--wood)"></i>Wood 木</span>
+        <span><i style="background:var(--fire)"></i>Fire 火</span>
+        <span><i style="background:var(--earth)"></i>Earth 土</span>
+        <span><i style="background:var(--metal)"></i>Metal 金</span>
+        <span><i style="background:var(--water)"></i>Water 水</span>
+      </div>
+
+      <h2 style="margin-top:26px">Personal cycles</h2>
+      <div class="tablewrap">
+        <table id="soccer-table">
+          <thead><tr><th>Group</th><th>Name</th><th>Born</th><th>Pers. Year</th><th>Pers. Month</th><th>Pers. Day</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="note"><b>Method.</b> Personal Year = digit-sum of (birth-month + birth-day + match-year), reduced to 1–9; Month adds the match month; Day adds the match day. Day &amp; Hour pillars are exact; Year &amp; Month pillars use approximate solar-term dates and can be ±1 day at a boundary.</p>
+    </div>
+  </section>
+
+  <!-- ============ TENNIS ============ -->
+  <section class="panel" id="panel-tennis" role="tabpanel">
+    <div class="card">
+      <p class="eyebrow">Step 1 · the match</p>
+      <h2>When is the first serve</h2>
+      <div class="grid cols-3">
+        <label class="field">Match date<input type="date" id="tennis-date"></label>
+        <label class="field">Start time<input type="time" id="tennis-time" value="14:00"></label>
+        <label class="field">Override animal <span style="text-transform:none;letter-spacing:0;color:#6b6253">(optional)</span>
+          <select id="tennis-override"><option value="">— use computed —</option></select>
+        </label>
+      </div>
+      <details class="adv">
+        <summary>Advanced · solar time &amp; day boundary</summary>
+        <div class="grid cols-2">
+          <label class="field">Solar-time offset (min)<input type="number" id="tennis-solar" value="0" step="1"></label>
+          <label class="field">Day boundary
+            <select id="tennis-boundary"><option value="0">Midnight (00:00)</option><option value="23">Start of Zi hour (23:00)</option></select>
+          </label>
+        </div>
+      </details>
+    </div>
+    <div class="card">
+      <p class="eyebrow">Step 2 · the players</p>
+      <h2>Birthdays to weigh</h2>
+      <p class="hint">Two players, plus their countries if you want the national charts too.</p>
+      <div class="egroup" data-group="Player" id="grp-tplayer"><h3>Players</h3></div>
+      <button class="addrow" data-add="tplayer">+ add player</button>
+      <div class="egroup" data-group="Country" id="grp-tcountry" style="margin-top:22px"><h3>Countries</h3></div>
+      <button class="addrow" data-add="tcountry">+ add country</button>
+    </div>
+    <div class="actions">
+      <button class="btn primary" data-read="tennis">Read the chart</button>
+      <button class="btn ghost" data-clear="tennis">Clear</button>
+    </div>
+    <div class="card" id="tennis-out" style="margin-top:18px;display:none">
+      <p class="eyebrow">The reading</p>
+      <h2>Four pillars of the match</h2>
+      <p class="chart-meta" id="tennis-chartmeta"></p>
+      <div class="pillars" id="tennis-pillars"></div>
+      <h2 style="margin-top:26px">Personal cycles</h2>
+      <div class="tablewrap"><table id="tennis-table">
+        <thead><tr><th>Group</th><th>Name</th><th>Born</th><th>Pers. Year</th><th>Pers. Month</th><th>Pers. Day</th></tr></thead>
+        <tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- ============ OTHER ============ -->
+  <section class="panel" id="panel-other" role="tabpanel">
+    <div class="card">
+      <p class="eyebrow">Step 1 · the event</p>
+      <h2>When does it start</h2>
+      <div class="grid cols-3">
+        <label class="field">Event date<input type="date" id="other-date"></label>
+        <label class="field">Start time<input type="time" id="other-time" value="19:00"></label>
+        <label class="field">Override animal <span style="text-transform:none;letter-spacing:0;color:#6b6253">(optional)</span>
+          <select id="other-override"><option value="">— use computed —</option></select>
+        </label>
+      </div>
+      <details class="adv">
+        <summary>Advanced · solar time &amp; day boundary</summary>
+        <div class="grid cols-2">
+          <label class="field">Solar-time offset (min)<input type="number" id="other-solar" value="0" step="1"></label>
+          <label class="field">Day boundary
+            <select id="other-boundary"><option value="0">Midnight (00:00)</option><option value="23">Start of Zi hour (23:00)</option></select>
+          </label>
+        </div>
+      </details>
+    </div>
+    <div class="card">
+      <p class="eyebrow">Step 2 · the figures</p>
+      <h2>Any birthdays to weigh</h2>
+      <p class="hint">Fighters, horses, drivers, teams, anyone — give each a label and a date.</p>
+      <div class="egroup" data-group="Figure" id="grp-ofigure"><h3>Figures</h3></div>
+      <button class="addrow" data-add="ofigure">+ add figure</button>
+    </div>
+    <div class="actions">
+      <button class="btn primary" data-read="other">Read the chart</button>
+      <button class="btn ghost" data-clear="other">Clear</button>
+    </div>
+    <div class="card" id="other-out" style="margin-top:18px;display:none">
+      <p class="eyebrow">The reading</p>
+      <h2>Four pillars of the event</h2>
+      <p class="chart-meta" id="other-chartmeta"></p>
+      <div class="pillars" id="other-pillars"></div>
+      <h2 style="margin-top:26px">Personal cycles</h2>
+      <div class="tablewrap"><table id="other-table">
+        <thead><tr><th>Group</th><th>Name</th><th>Born</th><th>Pers. Year</th><th>Pers. Month</th><th>Pers. Day</th></tr></thead>
+        <tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <footer>
+    LEDGER OF STEMS · static page, no data leaves your browser<br>
+    Day &amp; hour pillars verified exact · year &amp; month pillars use approximate solar terms · numerology = Pythagorean personal cycles<br>
+    This is a calculator, not a forecast. No numerological or BaZi quantity has any demonstrated power to predict a sporting result.
+  </footer>
+</div>
+
+<script>
+/* =========================================================
+   VERIFIED CALCULATION ENGINE
+   Day pillar checked against 3 source-worked examples:
+   2006-04-01=Geng-Shen, 1986-07-18=Gui-Hai, 2000-08-15=Yi-Si
+   Year 2024=Jia-Chen, 1984=Jia-Zi.
+   ========================================================= */
+const STEMS   = ["Jia","Yi","Bing","Ding","Wu","Ji","Geng","Xin","Ren","Gui"];
+const STEMS_CN= ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"];
+const STEM_EL = ["wood","wood","fire","fire","earth","earth","metal","metal","water","water"];
+const BRANCH   = ["Zi","Chou","Yin","Mao","Chen","Si","Wu","Wei","Shen","You","Xu","Hai"];
+const BRANCH_CN= ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
+const BRANCH_EL= ["water","earth","wood","wood","earth","fire","fire","earth","metal","metal","earth","water"];
+const ANIMALS  = ["Rat","Ox","Tiger","Rabbit","Dragon","Snake","Horse","Goat","Monkey","Rooster","Dog","Pig"];
+const ANIMAL_EMO=["🐀","🐂","🐅","🐇","🐉","🐍","🐎","🐐","🐒","🐓","🐕","🐖"];
+
+function jdn(y,m,d){
+  const a=Math.floor((14-m)/12), yy=y+4800-a, mm=m+12*a-3;
+  return d+Math.floor((153*mm+2)/5)+365*yy+Math.floor(yy/4)-Math.floor(yy/100)+Math.floor(yy/400)-32045;
+}
+function dayIndex(y,m,d){ return ((jdn(y,m,d)+49)%60+60)%60; }   // 0=Jia-Zi
+
+// approximate solar-month boundaries (start day of each jie term)
+// branch order beginning at Yin (Lichun). [gregMonth, ~day, branchIdx]
+const TERMS=[
+  [2,4,2],[3,6,3],[4,5,4],[5,6,5],[6,6,6],[7,7,7],
+  [8,8,8],[9,8,9],[10,8,10],[11,7,11],[12,7,0],[1,6,1]
+];
+function solarMonthBranch(y,m,d){
+  // find the latest term boundary on/before the date within the solar year
+  // returns {branchIdx, solarYear}
+  let solarYear=y, branchIdx=1; // default Chou (deep winter, pre-Lichun)
+  // build ordered list of boundaries for relevant span
+  // Determine if before Lichun -> previous solar year
+  if(m<2 || (m===2 && d<4)) solarYear=y-1;
+  // pick branch by scanning fixed dates
+  // months Feb..Dec use this year, Jan uses Chou of (solarYear)
+  const cand=[
+    {mo:2,dy:4,b:2},{mo:3,dy:6,b:3},{mo:4,dy:5,b:4},{mo:5,dy:6,b:5},
+    {mo:6,dy:6,b:6},{mo:7,dy:7,b:7},{mo:8,dy:8,b:8},{mo:9,dy:8,b:9},
+    {mo:10,dy:8,b:10},{mo:11,dy:7,b:11},{mo:12,dy:7,b:0}
+  ];
+  if(m===1 || (m===2 && d<4)){
+    branchIdx = (m===1) ? 1 : 1; // Jan & early Feb -> Chou
+    // actually Jan6+ is Chou, before Jan6 is Zi(0). handle:
+    if(m===1) branchIdx = (d>=6)?1:0;
+    else branchIdx = 1; // Feb 1-3 -> Chou
+  } else {
+    branchIdx = 0; // fallback
+    for(const c of cand){
+      if(m>c.mo || (m===c.mo && d>=c.dy)) branchIdx=c.b;
+    }
+  }
+  return {branchIdx, solarYear};
+}
+
+function hourBranchIdx(h){ return Math.floor(((h+1)%24)/2); }
+
+function fullChart(y,m,d,hour,minute,solarOffsetMin,boundary){
+  // apply solar-time offset to clock time
+  let total = hour*60 + minute + (solarOffsetMin||0);
+  let dd=d, mm=m, yy=y;
+  // normalise into 0..1439 with day carry
+  let dayShift=0;
+  while(total<0){total+=1440;dayShift--;}
+  while(total>=1440){total-=1440;dayShift++;}
+  if(dayShift!==0){const t=new Date(Date.UTC(y,m-1,d));t.setUTCDate(t.getUTCDate()+dayShift);yy=t.getUTCFullYear();mm=t.getUTCMonth()+1;dd=t.getUTCDate();}
+  const adjHour=Math.floor(total/60), adjMin=total%60;
+
+  // YEAR + MONTH (solar)
+  const sm=solarMonthBranch(yy,mm,dd);
+  const yIdx=((sm.solarYear-4)%60+60)%60;
+  const yStem=yIdx%10, yBranch=yIdx%12;
+  // month stem via Five-Tigers: Yin-month stem = ((yearStem%5)*2+2)%10
+  const yinStem=((yStem%5)*2+2)%10;
+  const monthSeq=((sm.branchIdx-2)+12)%12;
+  const mStem=(yinStem+monthSeq)%10;
+  const mBranch=sm.branchIdx;
+
+  // DAY (exact, from calendar date of the adjusted instant)
+  let dIdx=dayIndex(yy,mm,dd);
+  // HOUR
+  const hb=hourBranchIdx(adjHour);
+  // day-stem used for hour stem (boundary handling for 23:00 school)
+  let dayStemForHour=dIdx%10;
+  if(parseInt(boundary,10)===23 && adjHour>=23){
+    const nIdx=dayIndex(...nextDate(yy,mm,dd));
+    dayStemForHour=nIdx%10;
+  }
+  const hStem=((dayStemForHour*2)+hb)%10;
+
+  return {
+    adjHour,adjMin,
+    year:{stem:yStem,branch:yBranch},
+    month:{stem:mStem,branch:mBranch},
+    day:{stem:dIdx%10,branch:dIdx%12},
+    hour:{stem:hStem,branch:hb},
+    solarYear:sm.solarYear
+  };
+}
+function nextDate(y,m,d){const t=new Date(Date.UTC(y,m-1,d));t.setUTCDate(t.getUTCDate()+1);return [t.getUTCFullYear(),t.getUTCMonth()+1,t.getUTCDate()];}
+
+/* ---------- numerology ---------- */
+function reduceNum(n){ n=Math.abs(n); while(n>9){ n=String(n).split("").reduce((a,c)=>a+ +c,0);} return n; }
+function personalCycles(birthY,birthM,birthD,tgtY,tgtM,tgtD){
+  const py=reduceNum(birthM+birthD+tgtY);
+  const pm=reduceNum(py+tgtM);
+  const pd=reduceNum(pm+tgtD);
+  return {py,pm,pd};
+}
+
+/* =========================================================
+   UI
+   ========================================================= */
+function pad(n){return String(n).padStart(2,"0");}
+function stampNow(){const d=new Date();document.getElementById("nowStamp").textContent=
+  d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+" "+pad(d.getHours())+":"+pad(d.getMinutes());}
+stampNow();
+
+// default match dates = today
+(function(){const t=new Date();const iso=t.getFullYear()+"-"+pad(t.getMonth()+1)+"-"+pad(t.getDate());
+  ["soccer","tennis","other"].forEach(s=>{const el=document.getElementById(s+"-date"); if(el) el.value=iso;});})();
+
+// populate override-animal selects
+document.querySelectorAll('select[id$="-override"]').forEach(sel=>{
+  ANIMALS.forEach((a,i)=>{const o=document.createElement("option");o.value=i;o.textContent=ANIMAL_EMO[i]+" "+a;sel.appendChild(o);});
+});
+
+// tabs
+document.querySelectorAll('nav.tabs button').forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute("aria-selected","false"));
+    btn.setAttribute("aria-selected","true");
+    document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+    document.getElementById("panel-"+btn.dataset.tab).classList.add("active");
+  });
+});
+
+// entity row factory
+function makeRow(groupLabel){
+  const row=document.createElement("div");row.className="erow";
+  row.innerHTML=`
+    <label class="field">Name / label
+      <input type="text" class="e-name" placeholder="e.g. ${groupLabel}">
+    </label>
+    <label class="field">Birthday
+      <input type="date" class="e-date">
+    </label>
+    <button class="iconbtn e-del" title="remove" aria-label="remove row">×</button>`;
+  row.querySelector(".e-del").addEventListener("click",()=>row.remove());
+  return row;
+}
+const GROUP_MAP={
+  coach:["grp-coach","Coach"], country:["grp-country","Country"], player:["grp-player","Player"],
+  tplayer:["grp-tplayer","Player"], tcountry:["grp-tcountry","Country"],
+  ofigure:["grp-ofigure","Figure"]
+};
+document.querySelectorAll(".addrow").forEach(b=>{
+  b.addEventListener("click",()=>{const [gid,label]=GROUP_MAP[b.dataset.add];
+    document.getElementById(gid).appendChild(makeRow(label));});
+});
+// seed one row in each group
+Object.values(GROUP_MAP).forEach(([gid,label])=>{document.getElementById(gid).appendChild(makeRow(label));});
+
+// pillar renderer
+function pillarHTML(tag,p,key,overrideBranch){
+  const br = (overrideBranch!=null)?overrideBranch:p.branch;
+  const sEl="el-"+STEM_EL[p.stem], bEl="el-"+BRANCH_EL[br];
+  return `<div class="pillar ${key?'key':''}">
+    <div class="ptag">${tag}</div>
+    <div class="glyph">
+      <span class="stem-cn ${sEl}">${STEMS_CN[p.stem]}<span class="rom">${STEMS[p.stem]}</span></span>
+      <span class="branch-cn ${bEl}">${BRANCH_CN[br]}<span class="rom">${BRANCH[br]}</span></span>
+    </div>
+    <div class="animal">${ANIMAL_EMO[br]} <b>${ANIMALS[br]}</b></div>
+  </div>`;
+}
+
+function collect(groupIds){
+  const out=[];
+  groupIds.forEach(([gid,label])=>{
+    document.querySelectorAll("#"+gid+" .erow").forEach(r=>{
+      const name=r.querySelector(".e-name").value.trim();
+      const date=r.querySelector(".e-date").value;
+      if(date){out.push({group:label,name:name||"(unnamed)",date});}
+    });
+  });
+  return out;
+}
+
+function readChart(sport, groupIds){
+  const dStr=document.getElementById(sport+"-date").value;
+  const tStr=document.getElementById(sport+"-time").value||"00:00";
+  if(!dStr){alert("Set the match date first.");return;}
+  const [Y,M,D]=dStr.split("-").map(Number);
+  const [hh,mm]=tStr.split(":").map(Number);
+  const solar=parseInt(document.getElementById(sport+"-solar").value||"0",10);
+  const boundary=document.getElementById(sport+"-boundary").value;
+  const override=document.getElementById(sport+"-override").value;
+
+  const c=fullChart(Y,M,D,hh,mm,solar,boundary);
+  const ovBranch = override!=="" ? parseInt(override,10) : null;
+
+  // chart meta line
+  const meta=document.getElementById(sport+"-chartmeta");
+  meta.innerHTML=`Match <b>${dStr}</b> · kickoff <b>${pad(hh)}:${pad(mm)}</b>`
+    +(solar?` · solar-adj <b>${pad(c.adjHour)}:${pad(c.adjMin)}</b>`:``)
+    +` · BaZi day <b>${STEMS[c.day.stem]}-${BRANCH[c.day.branch]} (${ANIMALS[c.day.branch]})</b>`
+    +` · BaZi hour <b>${STEMS[c.hour.stem]}-${BRANCH[c.hour.branch]} (${ANIMALS[c.hour.branch]})</b>`
+    +(ovBranch!=null?` · hour animal overridden → <b>${ANIMALS[ovBranch]}</b>`:``);
+
+  document.getElementById(sport+"-pillars").innerHTML=
+    pillarHTML("Year 年",c.year,false)+
+    pillarHTML("Month 月",c.month,false)+
+    pillarHTML("Day 日",c.day,true)+
+    pillarHTML("Hour 时",c.hour,true,ovBranch);
+
+  // numerology table
+  const tb=document.querySelector("#"+sport+"-table tbody");tb.innerHTML="";
+  const people=collect(groupIds);
+  if(people.length===0){
+    tb.innerHTML=`<tr><td colspan="6" class="placeholder">No birthdays entered yet — add coaches, countries, or players above.</td></tr>`;
+  }else{
+    people.forEach(p=>{
+      const [by,bm,bd]=p.date.split("-").map(Number);
+      const pc=personalCycles(by,bm,bd,Y,M,D);
+      const tr=document.createElement("tr");
+      tr.innerHTML=`<td class="grp">${p.group}</td><td class="name">${escapeHtml(p.name)}</td>
+        <td style="font-family:'JetBrains Mono',monospace;color:var(--muted)">${p.date}</td>
+        <td><span class="num">${pc.py}</span></td>
+        <td><span class="num">${pc.pm}</span></td>
+        <td><span class="num">${pc.pd}</span></td>`;
+      tb.appendChild(tr);
+    });
+  }
+  document.getElementById(sport+"-out").style.display="block";
+  document.getElementById(sport+"-out").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+
+const SPORT_GROUPS={
+  soccer:[["grp-coach","Coach"],["grp-country","Country"],["grp-player","Player"]],
+  tennis:[["grp-tplayer","Player"],["grp-tcountry","Country"]],
+  other:[["grp-ofigure","Figure"]]
+};
+document.querySelectorAll("[data-read]").forEach(b=>{
+  b.addEventListener("click",()=>readChart(b.dataset.read,SPORT_GROUPS[b.dataset.read]));
+});
+document.querySelectorAll("[data-clear]").forEach(b=>{
+  b.addEventListener("click",()=>{
+    const s=b.dataset.clear;
+    SPORT_GROUPS[s].forEach(([gid,label])=>{
+      const g=document.getElementById(gid);
+      g.querySelectorAll(".erow").forEach(r=>r.remove());
+      g.appendChild(makeRow(label));
+    });
+    document.getElementById(s+"-out").style.display="none";
+    document.getElementById(s+"-override").value="";
+    document.getElementById(s+"-solar").value="0";
+  });
+});
+</script>
+</body>
+</html>
