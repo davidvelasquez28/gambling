@@ -166,7 +166,7 @@
   <div class="card">
     <p class="eyebrow" id="wsMode">New match</p>
     <h2>The fixture</h2>
-    <div class="grid c4">
+    <div class="grid c3">
       <label class="field">Match name
         <input type="text" id="m-name" placeholder="Colombia vs Uzbekistan">
       </label>
@@ -180,10 +180,35 @@
       <label class="field">Match date
         <input type="date" id="m-date">
       </label>
-      <label class="field">Start time
+    </div>
+
+    <p class="eyebrow" style="margin-top:20px">Kickoff &amp; finish</p>
+    <div class="grid c3">
+      <label class="field">Start — venue local <span class="lc">(drives BaZi)</span>
         <input type="time" id="m-time" value="20:00">
       </label>
+      <label class="field">Start — my time
+        <input type="time" id="m-mystart">
+      </label>
+      <label class="field">End — my time
+        <input type="time" id="m-myend">
+      </label>
     </div>
+
+    <p class="eyebrow" style="margin-top:20px">Location</p>
+    <div class="grid c3">
+      <label class="field">City / venue
+        <input type="text" id="m-location" placeholder="e.g. Barranquilla">
+      </label>
+      <label class="field">City founded
+        <input type="date" id="m-cityfounded">
+      </label>
+      <label class="field">Name energy <span class="lc">(of the city name)</span>
+        <input type="text" id="m-energy" readonly placeholder="—">
+      </label>
+    </div>
+    <button type="button" class="statbtn" id="cityStatsBtn" style="display:none;margin-top:10px">Check city numerology stats</button>
+    <div class="e-statpanel" id="cityStatsPanel" hidden></div>
     <details class="adv">
       <summary>Advanced · override animal · solar time · day boundary</summary>
       <div class="grid c3">
@@ -334,6 +359,10 @@ function effectiveMonth(M,matchDay,birthDay){   // personal-month ticks over on 
 }
 function ord(n){const v=n%100;return (v>=11&&v<=13)?"th":(["th","st","nd","rd"][n%10]||"th");}
 const MON=["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function nameNumber(str){    // Pythagorean letter sum -> "energy" of a name
+  let sum=0; for(const ch of (str||"").toUpperCase()){const c=ch.charCodeAt(0); if(c>=65&&c<=90) sum+=((c-65)%9)+1;}
+  return {sum, fmt: sum? fmtTotal(sum) : "—"};
+}
 
 /* =====================================================================
    STORAGE (localStorage on deployed site; in-memory fallback in sandbox)
@@ -453,11 +482,18 @@ function renderEntities(sport,data){
 }
 renderEntities("soccer");
 $("m-sport").addEventListener("change",()=>renderEntities($("m-sport").value));
-$("m-date").addEventListener("change",()=>{renderFixtureBazi();document.querySelectorAll("#entities .erow").forEach(r=>r._refreshStats&&r._refreshStats());});
+$("m-date").addEventListener("change",()=>{renderFixtureBazi();renderLocation();document.querySelectorAll("#entities .erow").forEach(r=>r._refreshStats&&r._refreshStats());});
 $("m-time").addEventListener("input",renderFixtureBazi);
 $("m-solar").addEventListener("input",renderFixtureBazi);
 $("m-boundary").addEventListener("change",renderFixtureBazi);
 $("m-override").addEventListener("change",renderFixtureBazi);
+$("m-location").addEventListener("input",renderLocation);
+$("m-cityfounded").addEventListener("change",renderLocation);
+$("cityStatsBtn").addEventListener("click",()=>{
+  const panel=$("cityStatsPanel"); panel.hidden=!panel.hidden;
+  $("cityStatsBtn").textContent=panel.hidden?"Check city numerology stats":"Hide city numerology stats";
+  renderLocation();
+});
 
 function collectForm(){
   const sport=$("m-sport").value;
@@ -472,6 +508,8 @@ function collectForm(){
     id:editingId||("m_"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),
     sport,name:$("m-name").value.trim()||"(untitled match)",
     date:$("m-date").value,time:$("m-time").value||"00:00",
+    myStart:$("m-mystart").value,myEnd:$("m-myend").value,
+    location:$("m-location").value.trim(),cityFounded:$("m-cityfounded").value,
     override:$("m-override").value,solar:parseInt($("m-solar").value||"0",10),boundary:$("m-boundary").value,
     entities
   };
@@ -511,25 +549,37 @@ function renderFixtureBazi(){
   $("dayNum").innerHTML=`Day numerology — the day is a <b>${fmtTotal(dsum)}</b> `
     +`<span style="color:var(--faint)">(${inp.M} + ${inp.D} + (${String(inp.Y).split("").join("+")}) = ${dsum})</span>`;
 }
+function renderLocation(){
+  const loc=$("m-location").value.trim();
+  $("m-energy").value = loc ? nameNumber(loc).fmt : "";
+  const cf=$("m-cityfounded").value, btn=$("cityStatsBtn"), panel=$("cityStatsPanel");
+  if(cf){
+    btn.style.display="";
+    if(!panel.hidden){const p=cf.split("-").map(Number); panel.innerHTML=entityStatsHTML(p[1],p[2],p[0],"");}
+  } else { btn.style.display="none"; panel.hidden=true; panel.innerHTML=""; }
+}
 function renderReading(match){
   if(!match.date){toast("Set the match date first");return false;}
   const [Y,M,D]=match.date.split("-").map(Number);
   $("readingTitle").textContent="Personal cycles · "+match.name;
   const tb=$("numTable").querySelector("tbody");tb.innerHTML="";
-  if(!match.entities.length){
+  const rows=match.entities.slice();
+  if(match.cityFounded) rows.unshift({gkey:"__city",name:(match.location||"Host city"),date:match.cityFounded,animal:""});
+  if(!rows.length){
     tb.innerHTML=`<tr><td colspan="8" class="pending">No birthdays entered.</td></tr>`;
   }else{
-    match.entities.forEach(e=>{
+    rows.forEach(e=>{
       const [bY,bM,bD]=e.date.split("-").map(Number);
       const py=personalYear(bM,bD,bY,Y,M,D);
       const lp=lifePath(bM,bD,bY);
       const ai=(e.animal!==""&&e.animal!=null)?+e.animal:yearAnimalIdx(bY,bM,bD);
+      const grpName=e.gkey==="__city"?"Location":groupLabel(match.sport,e.gkey);
       const lpStr=lp.same?lp.A:(lp.A+' <span class="sub2">·</span> '+lp.B);
       const pyStr=py.same?py.A:(py.A+' <span class="sub2">·</span> '+py.B);
       const ageStr=py.age!=null?(py.anchor+" · age "+py.age):py.anchor;
       const pyp=pyPrimary(py.rawA,py.rawB), ud=universalDay(Y,M,D), em=effectiveMonth(M,D,bD);
       tb.insertAdjacentHTML("beforeend",`<tr>
-        <td class="grp">${escapeHtml(groupLabel(match.sport,e.gkey))}</td>
+        <td class="grp">${escapeHtml(grpName)}</td>
         <td>${escapeHtml(e.name)}</td>
         <td class="mono">${e.date}</td>
         <td>${ANIMAL_EMO[ai]} ${ANIMALS[ai]}</td>
@@ -578,17 +628,21 @@ function openMatch(id){
   editingId=m.id;
   $("wsMode").textContent="Editing saved match";
   $("m-name").value=m.name;$("m-sport").value=m.sport;$("m-date").value=m.date;$("m-time").value=m.time;
+  $("m-mystart").value=m.myStart||"";$("m-myend").value=m.myEnd||"";
+  $("m-location").value=m.location||"";$("m-cityfounded").value=m.cityFounded||"";
   $("m-override").value=m.override||"";$("m-solar").value=m.solar||0;$("m-boundary").value=m.boundary||"0";
   renderEntities(m.sport,m.entities);
-  renderFixtureBazi();
+  renderFixtureBazi();renderLocation();
   renderReading(m);
   window.scrollTo({top:0,behavior:"smooth"});
 }
 function newMatch(){
   editingId=null;$("wsMode").textContent="New match";
   $("m-name").value="";$("m-sport").value="soccer";$("m-date").value=todayISO();$("m-time").value="20:00";
+  $("m-mystart").value="";$("m-myend").value="";$("m-location").value="";$("m-cityfounded").value="";
   $("m-override").value="";$("m-solar").value="0";$("m-boundary").value="0";
-  renderEntities("soccer");renderFixtureBazi();$("reading").style.display="none";
+  $("cityStatsPanel").hidden=true;
+  renderEntities("soccer");renderFixtureBazi();renderLocation();$("reading").style.display="none";
 }
 
 $("btnRead").addEventListener("click",()=>renderReading(collectForm()));
@@ -621,6 +675,7 @@ $("importFile").addEventListener("change",e=>{
 });
 
 renderFixtureBazi();
+renderLocation();
 renderLibrary();
 </script>
 </body>
