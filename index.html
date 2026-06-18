@@ -56,6 +56,18 @@
   .ro-auto{color:var(--faint);text-transform:uppercase;letter-spacing:.08em;font-size:9px;border:1px solid var(--line);padding:1px 5px;border-radius:10px;margin-left:6px}
   .py .sub2{color:var(--faint);font-family:"JetBrains Mono",monospace;font-weight:500}
   td .sub{display:block;font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+  .statbtn{grid-column:1 / -1;justify-self:start;background:transparent;border:1px solid var(--line);color:var(--muted);font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:7px 13px;border-radius:var(--radius);cursor:pointer;margin:0 0 6px}
+  .statbtn:hover{color:var(--gold);border-color:var(--gold)}
+  .statbtn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .e-statpanel{grid-column:1 / -1;border:1px solid var(--line);border-left:2px solid var(--gold);border-radius:var(--radius);background:var(--ink-3);padding:4px 16px;margin:0 0 16px}
+  .e-statpanel[hidden]{display:none}
+  .srow{display:grid;grid-template-columns:190px auto 1fr;gap:14px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line)}
+  .srow:last-child{border-bottom:0}
+  .srow>span{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .srow>b{font-family:"Fraunces",serif;font-weight:900;font-size:19px;color:var(--gold);line-height:1}
+  .srow>i{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--faint);font-style:normal;text-align:right}
+  .srow.pend>b{color:var(--faint)}
+  .srow.an>b{font-family:"Inter";font-weight:600;font-size:14px;color:var(--bone)}
   .iconbtn{height:40px;border:1px solid var(--line);background:var(--ink-3);color:var(--muted);border-radius:var(--radius);cursor:pointer;font-size:18px;line-height:1}
   .iconbtn:hover{color:var(--cinnabar-hi);border-color:var(--cinnabar)}
   .addrow{background:transparent;border:1px dashed var(--line);color:var(--muted);font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.08em;padding:9px 14px;border-radius:var(--radius);cursor:pointer;text-transform:uppercase}
@@ -132,6 +144,8 @@
     .grid.c2,.grid.c3,.grid.c4{grid-template-columns:1fr}
     .erow{grid-template-columns:1fr 1fr 34px}
     .erow > label.field:first-child{grid-column:1 / -1}
+    .srow{grid-template-columns:1fr auto}
+    .srow>i{grid-column:1 / -1;text-align:left;margin-top:2px}
     .pillars{grid-template-columns:repeat(2,1fr)}
   }
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -296,13 +310,12 @@ function fmtTotal(t){if(t===20)return "20/11";if(t===11||t===22||t===33)return "
 function splitVal(n){return (n===11||n===22)?n:digitSum(n);}        // master days never split
 function anchorYear(mY,mM,mD,bM,bD){return (mM>bM||(mM===bM&&mD>=bD))?mY:mY-1;}
 function personalYear(bM,bD,bY,mY,mM,mD){
-  const ay=anchorYear(mY,mM,mD,bM,bD), yd=digitSum(ay);
-  const A=bM+bD+yd, B=bM+splitVal(bD)+yd;     // month kept whole (provisional for 2-digit months)
-  return {A:fmtTotal(A),B:fmtTotal(B),same:A===B,anchor:ay,age:(bY?ay-bY:null)};
+  const ay=anchorYear(mY,mM,mD,bM,bD), yd=digitSum(ay), ra=bM+bD+yd, rb=bM+splitVal(bD)+yd;
+  return {A:fmtTotal(ra),B:fmtTotal(rb),rawA:ra,rawB:rb,same:ra===rb,anchor:ay,age:(bY?ay-bY:null)};
 }
 function lifePath(bM,bD,bY){                    // full birth-date total, both methods
-  const yd=digitSum(bY), A=bM+bD+yd, B=bM+splitVal(bD)+yd;
-  return {A:fmtTotal(A),B:fmtTotal(B),same:A===B};
+  const yd=digitSum(bY), ra=bM+bD+yd, rb=bM+splitVal(bD)+yd;
+  return {A:fmtTotal(ra),B:fmtTotal(rb),rawA:ra,rawB:rb,same:ra===rb};
 }
 function yearAnimalIdx(y,m,d){                  // Chinese zodiac via Lichun (~Feb 4) boundary
   const solarYear=(m<2||(m===2&&d<4))?y-1:y;
@@ -357,6 +370,25 @@ function updateRowReadout(row){
   out.innerHTML=`<span class="ro-lp">Life&nbsp;Path <b>${lpStr}</b></span>`
     +`<span class="ro-an">${ANIMAL_EMO[ai]} <b>${ANIMALS[ai]}</b>${isAuto?'<span class="ro-auto">auto</span>':''}</span>`;
 }
+function entityStatsHTML(bM,bD,bY,animalOverride){
+  let mEl=$("m-date").value,mY,mM,mD;
+  if(mEl){const p=mEl.split("-").map(Number);mY=p[0];mM=p[1];mD=p[2];}
+  else{const t=new Date();mY=t.getFullYear();mM=t.getMonth()+1;mD=t.getDate();}
+  const lp=lifePath(bM,bD,bY), py=personalYear(bM,bD,bY,mY,mM,mD);
+  const ai=(animalOverride!==""&&animalOverride!=null)?+animalOverride:yearAnimalIdx(bY,bM,bD);
+  const yW=String(bY).split("").join("+"), ayW=String(py.anchor).split("").join("+");
+  const dW=bD, dS=(bD===11||bD===22)?bD:digitSum(bD);
+  const lpB=lp.same?"":`<div class="srow"><span>Life Path · day split</span><b>${lp.B}</b><i>${bM} + ${dS} + (${yW}) = ${lp.rawB}</i></div>`;
+  const pyB=py.same?"":`<div class="srow"><span>Personal Year · day split</span><b>${py.B}</b><i>${bM} + ${dS} + (${ayW}) = ${py.rawB}</i></div>`;
+  return `<div class="srow"><span>Life Path · day whole</span><b>${lp.A}</b><i>${bM} + ${dW} + (${yW}) = ${lp.rawA}</i></div>`
+   +lpB
+   +`<div class="srow"><span>Personal Year · day whole</span><b>${py.A}</b><i>anchor ${py.anchor}${py.age!=null?" · age "+py.age:""} &nbsp; ${bM} + ${dW} + (${ayW}) = ${py.rawA}</i></div>`
+   +pyB
+   +`<div class="srow pend"><span>Personal Month</span><b>—</b><i>awaiting your formula</i></div>`
+   +`<div class="srow pend"><span>Personal Day</span><b>—</b><i>awaiting your formula</i></div>`
+   +`<div class="srow pend"><span>Personal Hour</span><b>—</b><i>awaiting your formula</i></div>`
+   +`<div class="srow an"><span>Zodiac animal</span><b>${ANIMAL_EMO[ai]} ${ANIMALS[ai]}</b><i>${(animalOverride!==""&&animalOverride!=null)?"manual override":"auto · Lichun boundary"}</i></div>`;
+}
 function entityRow(g,name="",date="",animal=""){
   const row=document.createElement("div");row.className="erow";row.dataset.gkey=g.key;
   row.innerHTML=`
@@ -370,11 +402,23 @@ function entityRow(g,name="",date="",animal=""){
       <select class="e-animal">${ANIMAL_OPTS}</select>
     </label>
     <button class="iconbtn e-del" title="remove" aria-label="remove">×</button>
-    <div class="e-readout"></div>`;
+    <div class="e-readout"></div>
+    <button type="button" class="statbtn e-stats">Check numerology stats</button>
+    <div class="e-statpanel" hidden></div>`;
+  const sbtn=row.querySelector(".e-stats"), spanel=row.querySelector(".e-statpanel");
+  function refreshStats(){
+    if(spanel.hidden)return;
+    const v=row.querySelector(".e-date").value;
+    if(!v){spanel.innerHTML='<div class="srow"><span>Enter a birthday first</span><b>—</b><i></i></div>';return;}
+    const p=v.split("-").map(Number);
+    spanel.innerHTML=entityStatsHTML(p[1],p[2],p[0],row.querySelector(".e-animal").value);
+  }
+  row._refreshStats=refreshStats;
   row.querySelector(".e-animal").value=animal||"";
   row.querySelector(".e-del").addEventListener("click",()=>row.remove());
-  row.querySelector(".e-date").addEventListener("input",()=>updateRowReadout(row));
-  row.querySelector(".e-animal").addEventListener("change",()=>updateRowReadout(row));
+  row.querySelector(".e-date").addEventListener("input",()=>{updateRowReadout(row);refreshStats();});
+  row.querySelector(".e-animal").addEventListener("change",()=>{updateRowReadout(row);refreshStats();});
+  sbtn.addEventListener("click",()=>{spanel.hidden=!spanel.hidden;sbtn.textContent=spanel.hidden?"Check numerology stats":"Hide numerology stats";refreshStats();});
   updateRowReadout(row);
   return row;
 }
@@ -394,6 +438,7 @@ function renderEntities(sport,data){
 }
 renderEntities("soccer");
 $("m-sport").addEventListener("change",()=>renderEntities($("m-sport").value));
+$("m-date").addEventListener("change",()=>document.querySelectorAll("#entities .erow").forEach(r=>r._refreshStats&&r._refreshStats()));
 
 function collectForm(){
   const sport=$("m-sport").value;
