@@ -283,8 +283,8 @@ function fullChart(y,m,d,hour,minute,solarOffsetMin,boundary){
    NUMEROLOGY — Personal Year per user's ruleset (verified)
    ===================================================================== */
 function digitSum(n){return String(Math.abs(n)).split("").reduce((a,c)=>a+ +c,0);}
-function reduceMaster(n){if(n===11||n===22||n===33)return n;while(n>9){n=digitSum(n);if(n===11||n===22||n===33)return n;}return n;}
-function fmtTotal(t){if(t===11||t===22||t===33)return ""+t;if(t<10)return ""+t;return t+"/"+reduceMaster(t);}
+function reduceMaster(n){if(n===20)return 11;if(n===11||n===22||n===33)return n;while(n>9){n=digitSum(n);if(n===20)return 11;if(n===11||n===22||n===33)return n;}return n;}
+function fmtTotal(t){if(t===20)return "20/11";if(t===11||t===22||t===33)return ""+t;if(t<10)return ""+t;return t+"/"+reduceMaster(t);}
 function splitVal(n){return (n===11||n===22)?n:digitSum(n);}        // master days never split
 function anchorYear(mY,mM,mD,bM,bD){return (mM>bM||(mM===bM&&mD>=bD))?mY:mY-1;}
 function personalYear(bM,bD,bY,mY,mM,mD){
