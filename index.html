@@ -209,6 +209,7 @@
         <span><i style="background:var(--metal)"></i>Metal 金</span>
         <span><i style="background:var(--water)"></i>Water 水</span>
       </div>
+      <p class="chart-meta" id="dayNum" style="margin-top:14px"></p>
     </div>
   </div>
 
@@ -231,7 +232,7 @@
     <h2 id="readingTitle">Personal cycles</h2>
     <div class="tablewrap">
       <table id="numTable">
-        <thead><tr><th>Group</th><th>Name</th><th>Born</th><th>Animal</th><th>Life Path</th><th>Personal Year</th></tr></thead>
+        <thead><tr><th>Group</th><th>Name</th><th>Born</th><th>Animal</th><th>Life Path</th><th>Personal Year</th><th>Pers. Month</th><th>Pers. Day</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -322,6 +323,17 @@ function yearAnimalIdx(y,m,d){                  // Chinese zodiac via Lichun (~F
   const solarYear=(m<2||(m===2&&d<4))?y-1:y;
   return ((solarYear-4)%12+12)%12;             // animal index aligns with branch index
 }
+function isMaster(n){return n===11||n===22||n===33;}
+function universalDay(Y,M,D){return reduceMaster(M+D+digitSum(Y));}   // the date's own number
+function pyPrimary(rawA,rawB){                  // when 2 PY methods differ, the master wins (shared root otherwise)
+  const ra=reduceMaster(rawA),rb=reduceMaster(rawB);
+  if(isMaster(ra))return ra; if(isMaster(rb))return rb; return ra;
+}
+function effectiveMonth(M,matchDay,birthDay){   // personal-month ticks over on the birth day-of-month
+  let em=(matchDay>=birthDay)?M:M-1; return em<1?12:em;
+}
+function ord(n){const v=n%100;return (v>=11&&v<=13)?"th":(["th","st","nd","rd"][n%10]||"th");}
+const MON=["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 /* =====================================================================
    STORAGE (localStorage on deployed site; in-memory fallback in sandbox)
@@ -381,12 +393,14 @@ function entityStatsHTML(bM,bD,bY,animalOverride){
   const dW=bD, dS=(bD===11||bD===22)?bD:digitSum(bD);
   const lpB=lp.same?"":`<div class="srow"><span>Life Path · day split</span><b>${lp.B}</b><i>${bM} + ${dS} + (${yW}) = ${lp.rawB}</i></div>`;
   const pyB=py.same?"":`<div class="srow"><span>Personal Year · day split</span><b>${py.B}</b><i>${bM} + ${dS} + (${ayW}) = ${py.rawB}</i></div>`;
+  const pyp=pyPrimary(py.rawA,py.rawB), ud=universalDay(mY,mM,mD);
+  const pmEm=effectiveMonth(mM,mD,bD), pmRaw=pyp+pmEm, pdRaw=pyp+ud;
   return `<div class="srow"><span>Life Path · day whole</span><b>${lp.A}</b><i>${bM} + ${dW} + (${yW}) = ${lp.rawA}</i></div>`
    +lpB
    +`<div class="srow"><span>Personal Year · day whole</span><b>${py.A}</b><i>anchor ${py.anchor}${py.age!=null?" · age "+py.age:""} &nbsp; ${bM} + ${dW} + (${ayW}) = ${py.rawA}</i></div>`
    +pyB
-   +`<div class="srow pend"><span>Personal Month</span><b>—</b><i>awaiting your formula</i></div>`
-   +`<div class="srow pend"><span>Personal Day</span><b>—</b><i>awaiting your formula</i></div>`
+   +`<div class="srow"><span>Personal Month</span><b>${fmtTotal(pmRaw)}</b><i>${pyp} + ${pmEm} (${MON[pmEm]}, rolls on the ${bD}${ord(bD)}) = ${pmRaw}</i></div>`
+   +`<div class="srow"><span>Personal Day</span><b>${fmtTotal(pdRaw)}</b><i>${pyp} + ${ud} (the day is a ${ud}) = ${pdRaw}</i></div>`
    +`<div class="srow pend"><span>Personal Hour</span><b>—</b><i>awaiting your formula</i></div>`
    +`<div class="srow an"><span>Zodiac animal</span><b>${ANIMAL_EMO[ai]} ${ANIMALS[ai]}</b><i>${(animalOverride!==""&&animalOverride!=null)?"manual override":"auto · Lichun boundary"}</i></div>`;
 }
@@ -493,6 +507,9 @@ function renderFixtureBazi(){
   $("pillars").innerHTML=
      pillarHTML("Year 年",c.year,false)+pillarHTML("Month 月",c.month,false)
     +pillarHTML("Day 日",c.day,true)+pillarHTML("Hour 时",c.hour,true,ov);
+  const dsum=inp.M+inp.D+digitSum(inp.Y);
+  $("dayNum").innerHTML=`Day numerology — the day is a <b>${fmtTotal(dsum)}</b> `
+    +`<span style="color:var(--faint)">(${inp.M} + ${inp.D} + (${String(inp.Y).split("").join("+")}) = ${dsum})</span>`;
 }
 function renderReading(match){
   if(!match.date){toast("Set the match date first");return false;}
@@ -500,7 +517,7 @@ function renderReading(match){
   $("readingTitle").textContent="Personal cycles · "+match.name;
   const tb=$("numTable").querySelector("tbody");tb.innerHTML="";
   if(!match.entities.length){
-    tb.innerHTML=`<tr><td colspan="6" class="pending">No birthdays entered.</td></tr>`;
+    tb.innerHTML=`<tr><td colspan="8" class="pending">No birthdays entered.</td></tr>`;
   }else{
     match.entities.forEach(e=>{
       const [bY,bM,bD]=e.date.split("-").map(Number);
@@ -510,13 +527,16 @@ function renderReading(match){
       const lpStr=lp.same?lp.A:(lp.A+' <span class="sub2">·</span> '+lp.B);
       const pyStr=py.same?py.A:(py.A+' <span class="sub2">·</span> '+py.B);
       const ageStr=py.age!=null?(py.anchor+" · age "+py.age):py.anchor;
+      const pyp=pyPrimary(py.rawA,py.rawB), ud=universalDay(Y,M,D), em=effectiveMonth(M,D,bD);
       tb.insertAdjacentHTML("beforeend",`<tr>
         <td class="grp">${escapeHtml(groupLabel(match.sport,e.gkey))}</td>
         <td>${escapeHtml(e.name)}</td>
         <td class="mono">${e.date}</td>
         <td>${ANIMAL_EMO[ai]} ${ANIMALS[ai]}</td>
         <td><span class="py">${lpStr}</span></td>
-        <td><span class="py">${pyStr}</span><span class="sub">${ageStr}</span></td></tr>`);
+        <td><span class="py">${pyStr}</span><span class="sub">${ageStr}</span></td>
+        <td><span class="py">${fmtTotal(pyp+em)}</span><span class="sub">${MON[em]}</span></td>
+        <td><span class="py">${fmtTotal(pyp+ud)}</span></td></tr>`);
     });
   }
   $("reading").style.display="block";
