@@ -257,7 +257,7 @@
     <h2 id="readingTitle">Personal cycles</h2>
     <div class="tablewrap">
       <table id="numTable">
-        <thead><tr><th>Group</th><th>Name</th><th>Born</th><th>Animal</th><th>Life Path</th><th>Personal Year</th><th>Pers. Month</th><th>Pers. Day</th></tr></thead>
+        <thead><tr><th>Group</th><th>Name</th><th>Born</th><th>Animal</th><th>Life Path</th><th>Personal Year</th><th>Pers. Month</th><th>Pers. Day</th><th>Pers. Hour</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -363,6 +363,7 @@ function nameNumber(str){    // Pythagorean letter sum -> "energy" of a name
   let sum=0; for(const ch of (str||"").toUpperCase()){const c=ch.charCodeAt(0); if(c>=65&&c<=90) sum+=((c-65)%9)+1;}
   return {sum, fmt: sum? fmtTotal(sum) : "—"};
 }
+function hour12(h){return ((h%24+24)%24+11)%12+1;}   // 24h hour -> 12-hour clock number (1..12)
 
 /* =====================================================================
    STORAGE (localStorage on deployed site; in-memory fallback in sandbox)
@@ -424,13 +425,14 @@ function entityStatsHTML(bM,bD,bY,animalOverride){
   const pyB=py.same?"":`<div class="srow"><span>Personal Year · day split</span><b>${py.B}</b><i>${bM} + ${dS} + (${ayW}) = ${py.rawB}</i></div>`;
   const pyp=pyPrimary(py.rawA,py.rawB), ud=universalDay(mY,mM,mD);
   const pmEm=effectiveMonth(mM,mD,bD), pmRaw=pyp+pmEm, pdRaw=pyp+ud;
+  const vh=parseInt(($("m-time").value||"00:00").split(":")[0],10)||0, h12=hour12(vh), rh=reduceMaster(h12), phRaw=pyp+rh;
   return `<div class="srow"><span>Life Path · day whole</span><b>${lp.A}</b><i>${bM} + ${dW} + (${yW}) = ${lp.rawA}</i></div>`
    +lpB
    +`<div class="srow"><span>Personal Year · day whole</span><b>${py.A}</b><i>anchor ${py.anchor}${py.age!=null?" · age "+py.age:""} &nbsp; ${bM} + ${dW} + (${ayW}) = ${py.rawA}</i></div>`
    +pyB
    +`<div class="srow"><span>Personal Month</span><b>${fmtTotal(pmRaw)}</b><i>${pyp} + ${pmEm} (${MON[pmEm]}, rolls on the ${bD}${ord(bD)}) = ${pmRaw}</i></div>`
    +`<div class="srow"><span>Personal Day</span><b>${fmtTotal(pdRaw)}</b><i>${pyp} + ${ud} (the day is a ${ud}) = ${pdRaw}</i></div>`
-   +`<div class="srow pend"><span>Personal Hour</span><b>—</b><i>awaiting your formula</i></div>`
+   +`<div class="srow"><span>Personal Hour</span><b>${fmtTotal(phRaw)}</b><i>${pyp} + ${rh} (the ${h12} o'clock hour → ${rh}) = ${phRaw}</i></div>`
    +`<div class="srow an"><span>Zodiac animal</span><b>${ANIMAL_EMO[ai]} ${ANIMALS[ai]}</b><i>${(animalOverride!==""&&animalOverride!=null)?"manual override":"auto · Lichun boundary"}</i></div>`;
 }
 function entityRow(g,name="",date="",animal=""){
@@ -483,7 +485,7 @@ function renderEntities(sport,data){
 renderEntities("soccer");
 $("m-sport").addEventListener("change",()=>renderEntities($("m-sport").value));
 $("m-date").addEventListener("change",()=>{renderFixtureBazi();renderLocation();document.querySelectorAll("#entities .erow").forEach(r=>r._refreshStats&&r._refreshStats());});
-$("m-time").addEventListener("input",renderFixtureBazi);
+$("m-time").addEventListener("input",()=>{renderFixtureBazi();renderLocation();document.querySelectorAll("#entities .erow").forEach(r=>r._refreshStats&&r._refreshStats());});
 $("m-solar").addEventListener("input",renderFixtureBazi);
 $("m-boundary").addEventListener("change",renderFixtureBazi);
 $("m-override").addEventListener("change",renderFixtureBazi);
@@ -563,10 +565,11 @@ function renderReading(match){
   const [Y,M,D]=match.date.split("-").map(Number);
   $("readingTitle").textContent="Personal cycles · "+match.name;
   const tb=$("numTable").querySelector("tbody");tb.innerHTML="";
+  const vh=parseInt((match.time||"00:00").split(":")[0],10)||0, rh=reduceMaster(hour12(vh));
   const rows=match.entities.slice();
   if(match.cityFounded) rows.unshift({gkey:"__city",name:(match.location||"Host city"),date:match.cityFounded,animal:""});
   if(!rows.length){
-    tb.innerHTML=`<tr><td colspan="8" class="pending">No birthdays entered.</td></tr>`;
+    tb.innerHTML=`<tr><td colspan="9" class="pending">No birthdays entered.</td></tr>`;
   }else{
     rows.forEach(e=>{
       const [bY,bM,bD]=e.date.split("-").map(Number);
@@ -586,7 +589,8 @@ function renderReading(match){
         <td><span class="py">${lpStr}</span></td>
         <td><span class="py">${pyStr}</span><span class="sub">${ageStr}</span></td>
         <td><span class="py">${fmtTotal(pyp+em)}</span><span class="sub">${MON[em]}</span></td>
-        <td><span class="py">${fmtTotal(pyp+ud)}</span></td></tr>`);
+        <td><span class="py">${fmtTotal(pyp+ud)}</span></td>
+        <td><span class="py">${fmtTotal(pyp+rh)}</span></td></tr>`);
     });
   }
   $("reading").style.display="block";
