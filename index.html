@@ -179,10 +179,9 @@ label{display:block;font-size:10px;font-weight:700;letter-spacing:.1em;text-tran
 
     <!-- calculator -->
     <div class="panel">
-      <h2>Quick numbers <span class="note">Run a player before you bet. Nothing here is saved.</span></h2>
-      <div class="calcgrid">
+      <h2>Quick numbers <span class="note">Run a player before you bet. Uses today's date. Nothing here is saved.</span></h2>
+      <div class="calcgrid" style="max-width:260px">
         <div class="f"><label>Birthday</label><input type="date" id="cBday" onchange="runCalc()"></div>
-        <div class="f"><label>As of date</label><input type="date" id="cDate" onchange="runCalc()"></div>
       </div>
       <div class="res" id="cRes"></div>
     </div>
@@ -269,46 +268,54 @@ label{display:block;font-size:10px;font-weight:700;letter-spacing:.1em;text-tran
    - Masters 11/22/33 never reduce, and lock only themselves.
    - If one path lands on a master and another doesn't, the master wins.
    ========================================================= */
-const MASTERS=[11,22,33];
+const MASTERS=[11,22,33];        // get the blue M tag
+const HOLD=[11,22,33,28];        // if a TOTAL lands on one of these, keep it. everything else reduces.
 const isMaster=n=>MASTERS.includes(n);
+const isHeld=n=>HOLD.includes(n);
 const digitSum=n=>String(Math.abs(n)).split('').reduce((a,c)=>a+ +c,0);
-function reduceNum(n){let x=Math.abs(n);while(x>9&&!isMaster(x))x=digitSum(x);return x;}
+// reduce a TOTAL. stops on a held number.
+function reduceNum(n){let x=Math.abs(n);while(x>9&&!isHeld(x))x=digitSum(x);return x;}
+// a month/day/year's REDUCED form is ONE digit-sum pass. 28 -> 10, not 1.
+const compRed=n=>isMaster(n)?n:digitSum(n);
 const yearVal=y=>digitSum(y);
-const comp=n=>({whole:n, red:isMaster(n)?n:reduceNum(n)});
+const comp=n=>({whole:n, red:compRed(n)});
+function finish(parts){
+  const total=parts.reduce((a,b)=>a+b,0);
+  return {parts, total, final: reduceNum(total)};
+}
 
 function buildPaths(m,d,yv){
   const M=comp(m),D=comp(d),L=[];
-  const add=(lab,parts)=>{const t=parts.reduce((a,b)=>a+b,0);L.push({lab,parts,total:t,final:reduceNum(t)});};
-  add('reduced',[M.red,D.red,yv]);
-  if(M.whole!==M.red||D.whole!==D.red) add('whole',[M.whole,D.whole,yv]);
+  L.push(finish([M.red,D.red,yv]));
+  if(M.whole!==M.red||D.whole!==D.red) L.push(finish([M.whole,D.whole,yv]));
   return L;
 }
 function core(m,d,y){
   const ps=buildPaths(m,d,yearVal(y));
-  const mas=ps.find(p=>isMaster(p.final));
+  const mas=ps.find(p=>isHeld(p.final));
   return {paths:ps, value:mas?mas.final:ps[0].final, primary:ps[0]};
 }
-// personal day = personal-year TOTAL + universal-day TOTAL, matched path to path
+// personal day = personal-year TOTAL + universal-day TOTAL, path matched to path
 function personalDay(py,ud){
   const L=[];
   const n=Math.max(py.paths.length,ud.paths.length);
   for(let i=0;i<n;i++){
     const a=py.paths[Math.min(i,py.paths.length-1)], b=ud.paths[Math.min(i,ud.paths.length-1)];
-    const t=a.total+b.total;
-    if(!L.some(x=>x.total===t)) L.push({lab:i===0?'reduced':'whole',parts:[a.total,b.total],total:t,final:reduceNum(t)});
+    const r=finish([a.total,b.total]);
+    if(!L.some(x=>x.total===r.total)) L.push(r);
   }
-  const mas=L.find(p=>isMaster(p.final));
+  const mas=L.find(p=>isHeld(p.final));
   return {paths:L, value:mas?mas.final:L[0].final, primary:L[0]};
 }
-function combineWith(base, addM){ // personal month = personal year value + calendar month
+// personal month = personal year + calendar month
+function combineWith(base, addM){
   const M=comp(addM), L=[];
-  const add=(lab,parts)=>{const t=parts.reduce((a,b)=>a+b,0);if(!L.some(x=>x.total===t))L.push({lab,parts,total:t,final:reduceNum(t)});};
-  add('reduced',[base.value,M.red]);
-  if(M.whole!==M.red) add('whole',[base.value,M.whole]);
-  const mas=L.find(p=>isMaster(p.final));
+  L.push(finish([base.value,M.red]));
+  if(M.whole!==M.red){ const r=finish([base.value,M.whole]); if(r.total!==L[0].total) L.push(r); }
+  const mas=L.find(p=>isHeld(p.final));
   return {paths:L, value:mas?mas.final:L[0].final, primary:L[0]};
 }
-const waysHTML=o=>o.paths.map(p=>'<div><b>'+p.parts.join(' + ')+' = '+p.total+'</b> → '+p.final+(isMaster(p.final)?' <span style="color:var(--blue);font-weight:700">master</span>':'')+'</div>').join('');
+const waysHTML=o=>o.paths.map(p=>'<div><b>'+p.parts.join(' + ')+' = '+p.total+'</b></div>').join('');
 
 /* ---- date helpers ---- */
 function parts(iso){const[a,b,c]=iso.split('-').map(Number);return{y:a,m:b,d:c};}
@@ -404,25 +411,25 @@ const cell=(k,v,x)=>'<div class="c"><div class="k">'+k+'</div><div class="v">'+v
    CALCULATOR
    ========================================================= */
 function runCalc(){
-  const b=document.getElementById('cBday').value, d=document.getElementById('cDate').value||todayISO();
+  const b=document.getElementById('cBday').value;
   const box=document.getElementById('cRes');
   if(!b){box.innerHTML='';return;}
-  const pr=profile(b,d), bz=baziOf(d);
+  const pr=profile(b, todayISO());
   box.innerHTML=
      card('Age',pr.age,null)
     +card('Life path',pr.lp.value,pr.lp)
     +card('Personal year',pr.py.value,pr.py)
     +card('Personal month',pr.pm.value,pr.pm)
-    +card('Personal day',pr.pd.value,pr.pd)
-    +card('Universal day',pr.ud.value,pr.ud)
-    +'<div class="rc"><div class="k">BaZi day</div><div class="v" style="font-size:24px">'+gz(bz.d)+'</div><div class="ways">'+gzEn(bz.d)+'<br>'+B_EN[bz.m.b]+' month</div></div>';
+    +card('Personal day',pr.pd.value,pr.pd);
 }
 function card(k,v,obj){
   const mas=isMaster(v)?'<span class="m">M</span>':'';
+  // frozen total (a master was in the sum) -> show its reduced value in parens: 28(1)
+  const par=(!isMaster(v)&&v>9)?'<span class="m" style="color:var(--mut);font-weight:600">('+(function(x){let z=x;while(z>9)z=digitSum(z);return z;})(v)+')</span>':'';
   const dd=obj&&obj.paths.length>1
     ? '<details><summary>other ways</summary><div class="ways">'+waysHTML(obj)+'</div></details>'
     : (obj?'<div class="ways">'+waysHTML(obj)+'</div>':'');
-  return '<div class="rc"><div class="k">'+k+'</div><div class="v num">'+v+mas+'</div>'+dd+'</div>';
+  return '<div class="rc"><div class="k">'+k+'</div><div class="v num">'+v+mas+par+'</div>'+dd+'</div>';
 }
 
 /* =========================================================
@@ -729,7 +736,6 @@ function renderAll(){
 }
 (function init(){
   load();
-  document.getElementById('cDate').value=todayISO();
   setsOpts(); renderStrip(); renderAll();
 })();
 </script>
