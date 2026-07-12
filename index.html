@@ -82,6 +82,7 @@ label{display:block;font-size:10px;font-weight:700;letter-spacing:.1em;text-tran
 .rc details[open] summary::before{content:"▾ "}
 .rc .ways{font-size:11px;color:var(--mut);margin-top:5px;line-height:1.65;font-variant-numeric:tabular-nums}
 .rc .ways b{color:var(--ink);font-weight:600}
+.rc .under{font-family:Archivo;font-weight:700;font-size:19px;color:var(--mut);line-height:1.2;margin-top:1px}
 
 /* ---------- match form ---------- */
 .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -415,9 +416,15 @@ function runCalc(){
   const box=document.getElementById('cRes');
   if(!b){box.innerHTML='';return;}
   const pr=profile(b, todayISO());
+  const bd=parts(b).d;                       // secondary energy = the day of the month
+  const bdRed=compRed(bd);
+  const sec='<div class="rc"><div class="k">Secondary energy</div>'
+    +'<div class="v num">'+bd+(isMaster(bd)?'<span class="m">M</span>':'')+'</div>'
+    +'<div class="under">'+bdRed+'</div></div>';
   box.innerHTML=
      card('Age',pr.age,null)
     +card('Life path',pr.lp.value,pr.lp)
+    +sec
     +card('Personal year',pr.py.value,pr.py)
     +card('Personal month',pr.pm.value,pr.pm)
     +card('Personal day',pr.pd.value,pr.pd);
