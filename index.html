@@ -71,6 +71,9 @@ label{display:block;font-size:10px;font-weight:700;letter-spacing:.1em;text-tran
 /* ---------- calculator ---------- */
 .calcgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:11px;align-items:end}
 .res{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px;margin-top:14px}
+.res3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.ow{font-size:10px;color:var(--blue);font-weight:600;margin-top:5px}
+.ow::before{content:"• "}
 .rc{border:1.5px solid var(--line);border-radius:4px;padding:10px 12px;background:#FAFAF8}
 .rc .k{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);font-weight:700}
 .rc .v{font-family:Archivo;font-weight:900;font-size:31px;line-height:1.1;letter-spacing:-.03em}
@@ -144,7 +147,7 @@ label{display:block;font-size:10px;font-weight:700;letter-spacing:.1em;text-tran
 .flag{border:1.5px solid #E9DDB4;background:#FCF8EA;border-radius:4px;padding:12px 14px;font-size:12px;color:#6B5A1E;line-height:1.6;margin-bottom:16px}
 .flag b{color:#463B12}
 @media(max-width:900px){.two{grid-template-columns:1fr}.rail{width:170px}}
-@media(max-width:640px){.app{flex-direction:column}.rail{width:100%;height:auto;position:static}main{padding:16px 14px 70px}}
+@media(max-width:640px){.app{flex-direction:column}.rail{width:100%;height:auto;position:static}main{padding:16px 14px 70px}.res3{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -422,20 +425,24 @@ function runCalc(){
     +'<div class="v num">'+bd+(isMaster(bd)?'<span class="m">M</span>':'')+'</div>'
     +'<div class="under">'+bdRed+'</div></div>';
   box.innerHTML=
-     card('Age',pr.age,null)
-    +card('Life path',pr.lp.value,pr.lp)
-    +sec
-    +card('Personal year',pr.py.value,pr.py)
-    +card('Personal month',pr.pm.value,pr.pm)
-    +card('Personal day',pr.pd.value,pr.pd);
+     '<div class="res3">'
+    + card('Age',pr.age,null)
+    + card('Life path',pr.lp.value,pr.lp)
+    + sec
+    + '</div>'
+    + '<div class="res3">'
+    + card('Personal year',pr.py.value,pr.py)
+    + card('Personal month',pr.pm.value,pr.pm)
+    + card('Personal day',pr.pd.value,pr.pd)
+    + '</div>';
 }
 function card(k,v,obj){
   const mas=isMaster(v)?'<span class="m">M</span>':'';
   // frozen total (a master was in the sum) -> show its reduced value in parens: 28(1)
   const par=(!isMaster(v)&&v>9)?'<span class="m" style="color:var(--mut);font-weight:600">('+(function(x){let z=x;while(z>9)z=digitSum(z);return z;})(v)+')</span>':'';
-  const dd=obj&&obj.paths.length>1
-    ? '<details><summary>other ways</summary><div class="ways">'+waysHTML(obj)+'</div></details>'
-    : (obj?'<div class="ways">'+waysHTML(obj)+'</div>':'');
+  const dd=obj
+    ? (obj.paths.length>1?'<div class="ow">other ways</div>':'')+'<div class="ways">'+waysHTML(obj)+'</div>'
+    : '';
   return '<div class="rc"><div class="k">'+k+'</div><div class="v num">'+v+mas+par+'</div>'+dd+'</div>';
 }
 
