@@ -1,757 +1,400 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Match Ledger</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Mental Math Drills</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
-:root{
-  --bg:#F1F1EE; --panel:#FFFFFF; --ink:#0D0D0D; --mut:#77787A; --line:#E0E0DA; --hard:#0D0D0D;
-  --hit:#12764A; --hit-bg:#E4F3EB;
-  --miss:#BE3227; --miss-bg:#FBE9E7;
-  --pend:#8A6A12; --pend-bg:#FBF3DC;
-  --blue:#1B3BD8;
-}
-*{box-sizing:border-box}
-html,body{margin:0;padding:0}
-body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}
-h1,h2,h3,.disp{font-family:Archivo,sans-serif;margin:0}
-.num{font-variant-numeric:tabular-nums}
+  /* Layout: single centered column, two tabs (Practice / Tricks), purple accent on a near-white ground */
+  :root{
+    --bg:#faf9fc;
+    --surface:#ffffff;
+    --fg:#1a181f;
+    --muted:#6c6678;
+    --border:#e7e2f0;
+    --accent:#6d28d9;
+    --accent-soft:#f1ebfd;
+    --good:#1d7a4d;
+    --bad:#c0392b;
+    --font-display:"Bricolage Grotesque",Georgia,serif;
+    --font-ui:"IBM Plex Sans",system-ui,sans-serif;
+    --font-num:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#131118;--surface:#1c1a23;--fg:#ece9f2;--muted:#9b94ab;
+      --border:#302c3b;--accent:#a78bfa;--accent-soft:#241f33;
+      --good:#58c98d;--bad:#f07a6c;color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#131118;--surface:#1c1a23;--fg:#ece9f2;--muted:#9b94ab;
+    --border:#302c3b;--accent:#a78bfa;--accent-soft:#241f33;
+    --good:#58c98d;--bad:#f07a6c;color-scheme:dark;
+  }
 
-/* ---------- shell ---------- */
-.app{display:flex;min-height:100vh}
-.rail{width:230px;flex:none;background:var(--hard);color:#F1F1EE;padding:18px 0 40px;position:sticky;top:0;height:100vh;overflow-y:auto}
-.rail .logo{font-family:Archivo;font-weight:900;font-size:19px;letter-spacing:-.02em;padding:0 18px 16px;border-bottom:1px solid #2A2A2A}
-.rail .grp{padding:16px 18px 6px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7C7C7C;font-weight:700}
-.ev{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:500;border-left:3px solid transparent;color:#CFCFCB}
-.ev:hover{background:#191919;color:#fff}
-.ev.on{background:#191919;color:#fff;border-left-color:#fff}
-.ev .c{font-size:11px;color:#7C7C7C;font-variant-numeric:tabular-nums}
-.ev.on .c{color:#BDBDBD}
-.rail .pl{padding:7px 18px;font-size:12px;color:#A6A6A2;display:flex;justify-content:space-between;gap:8px}
-.rail .pl span{color:#6E6E6E;font-size:11px}
-.rail .tools{padding:14px 18px 0;display:flex;flex-direction:column;gap:7px}
-.rail .tools button{width:100%}
+  *{box-sizing:border-box}
+  body{
+    background:var(--bg);color:var(--fg);
+    font-family:var(--font-ui);line-height:1.5;
+  }
+  .wrap{
+    max-width:640px;margin:0 auto;
+    padding-left:max(16px,env(safe-area-inset-left,0px));
+    padding-right:max(16px,env(safe-area-inset-right,0px));
+    padding-block:28px 48px;
+  }
 
-main{flex:1;min-width:0;padding:22px 26px 90px}
-.head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:14px}
-.head h1{font-size:30px;font-weight:900;letter-spacing:-.03em}
-.head .sub{color:var(--mut);font-size:12px;margin-top:3px}
+  h1{
+    font-family:var(--font-display);font-weight:700;
+    font-size:clamp(1.7rem,6vw,2.3rem);letter-spacing:-.02em;
+    margin:0 0 4px;text-wrap:balance;
+  }
+  .sub{color:var(--muted);font-size:.95rem;margin:0 0 22px}
 
-/* ---------- buttons / inputs ---------- */
-button{font-family:Inter;font-weight:600;font-size:12px;cursor:pointer;border:1.5px solid var(--hard);background:var(--hard);color:#fff;padding:8px 13px;border-radius:3px}
-button:hover{opacity:.87}
-button.g{background:transparent;color:var(--ink)}
-button.g:hover{background:var(--hard);color:#fff;opacity:1}
-button.sm{padding:5px 9px;font-size:11px}
-button.dk{border-color:#3A3A3A;background:#242424;color:#EAEAEA}
-button.dk:hover{background:#333;opacity:1}
-input,select{font-family:Inter;font-size:13px;padding:8px 9px;border:1.5px solid var(--line);border-radius:3px;background:#fff;color:var(--ink);width:100%}
-input:focus,select:focus{outline:none;border-color:var(--hard)}
-label{display:block;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin-bottom:4px}
-.f{min-width:0}
-.grid{display:grid;gap:11px}
+  /* tabs */
+  .tabs{display:flex;gap:6px;margin-bottom:22px}
+  .tab{
+    font:inherit;font-weight:600;color:var(--muted);
+    background:none;border:none;cursor:pointer;
+    padding:8px 2px;border-bottom:2px solid transparent;
+  }
+  .tab[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+  .tab:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
 
-/* ---------- panels ---------- */
-.panel{background:var(--panel);border:1.5px solid var(--line);border-radius:5px;padding:16px 18px;margin-bottom:16px}
-.panel > h2{font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding-bottom:9px;margin-bottom:14px;border-bottom:2.5px solid var(--hard);display:flex;justify-content:space-between;align-items:center;gap:10px}
-.panel > h2 .note{font-weight:500;font-size:11px;letter-spacing:0;text-transform:none;color:var(--mut)}
+  /* chips to pick a drill */
+  .chips-label{font-size:.78rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 8px}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px}
+  .chip{
+    font:inherit;font-size:.86rem;color:var(--fg);cursor:pointer;
+    background:var(--surface);border:1px solid var(--border);border-radius:999px;
+    padding:6px 13px;transition:background .12s,border-color .12s;
+  }
+  .chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+  .chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
-/* ---------- energy strip ---------- */
-.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));background:var(--hard);color:#fff;border-radius:5px;overflow:hidden;margin-bottom:16px}
-.strip .c{padding:13px 15px;border-right:1px solid #262626}
-.strip .c:last-child{border-right:0}
-.strip .k{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#8C8C8C;font-weight:700}
-.strip .v{font-family:Archivo;font-weight:800;font-size:25px;margin-top:2px;letter-spacing:-.02em}
-.strip .x{font-size:10px;color:#9A9A9A;margin-top:1px}
+  /* play button */
+  .play{
+    font:inherit;font-weight:600;font-size:1.05rem;
+    background:var(--accent);color:#fff;border:none;border-radius:12px;
+    padding:14px 24px;cursor:pointer;width:100%;
+    transition:filter .12s,transform .05s;
+  }
+  .play:hover{filter:brightness(1.07)}
+  .play:active{transform:translateY(1px)}
+  .play:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 
-/* ---------- calculator ---------- */
-.calcgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:11px;align-items:end}
-.res{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px;margin-top:14px}
-.res3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
-.ow{font-size:10px;color:var(--blue);font-weight:600;margin-top:5px}
-.ow::before{content:"• "}
-.rc{border:1.5px solid var(--line);border-radius:4px;padding:10px 12px;background:#FAFAF8}
-.rc .k{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);font-weight:700}
-.rc .v{font-family:Archivo;font-weight:900;font-size:31px;line-height:1.1;letter-spacing:-.03em}
-.rc .v .m{font-size:11px;color:var(--blue);font-weight:700;vertical-align:super;margin-left:3px;font-family:Inter}
-.rc details{margin-top:5px}
-.rc summary{font-size:10px;color:var(--blue);cursor:pointer;font-weight:600;list-style:none}
-.rc summary::-webkit-details-marker{display:none}
-.rc summary::before{content:"▸ ";font-size:8px}
-.rc details[open] summary::before{content:"▾ "}
-.rc .ways{font-size:11px;color:var(--mut);margin-top:5px;line-height:1.65;font-variant-numeric:tabular-nums}
-.rc .ways b{color:var(--ink);font-weight:600}
-.rc .under{font-family:Archivo;font-weight:700;font-size:19px;color:var(--mut);line-height:1.2;margin-top:1px}
+  /* problem card */
+  .card{
+    background:var(--surface);border:1px solid var(--border);border-radius:16px;
+    padding:22px 20px;margin-top:20px;
+  }
+  .method{
+    display:inline-block;font-weight:600;font-size:.82rem;
+    color:var(--accent);background:var(--accent-soft);
+    padding:5px 11px;border-radius:999px;margin-bottom:16px;
+  }
+  .problem{
+    font-family:var(--font-num);font-weight:600;
+    font-size:clamp(2.2rem,11vw,3.2rem);letter-spacing:-.01em;
+    font-variant-numeric:tabular-nums;margin:2px 0 18px;
+  }
+  .answer-row{display:flex;gap:10px;flex-wrap:wrap}
+  .answer-row input{
+    font-family:var(--font-num);font-size:1.3rem;font-variant-numeric:tabular-nums;
+    flex:1;min-width:0;background:var(--bg);color:var(--fg);
+    border:1px solid var(--border);border-radius:10px;padding:10px 14px;
+  }
+  .answer-row input:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+  .check{
+    font:inherit;font-weight:600;color:var(--accent);cursor:pointer;
+    background:var(--surface);border:1.5px solid var(--accent);border-radius:10px;padding:10px 18px;
+  }
+  .check:active{transform:translateY(1px)}
+  .check:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
-/* ---------- match form ---------- */
-.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.side{border:1.5px solid var(--line);border-radius:4px;padding:13px;background:#FAFAF8}
-.side h3{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);margin-bottom:10px}
-.mini{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px;margin-top:9px}
-.mv{border:1px solid var(--line);border-radius:3px;padding:6px 8px;background:#fff;text-align:center}
-.mv .k{font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);font-weight:700}
-.mv .v{font-family:Archivo;font-weight:800;font-size:18px}
+  .feedback{font-weight:600;margin-top:14px;min-height:1.4em}
+  .feedback.good{color:var(--good)}
+  .feedback.bad{color:var(--bad)}
 
-/* ---------- stats ---------- */
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:6px}
-.kpi{border:1.5px solid var(--line);border-radius:4px;padding:13px 15px;background:#FAFAF8}
-.kpi .k{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);font-weight:700}
-.kpi .v{font-family:Archivo;font-weight:900;font-size:33px;letter-spacing:-.03em;line-height:1.15;margin-top:2px}
-.kpi .x{font-size:11px;color:var(--mut)}
-.pos{color:var(--hit)} .neg{color:var(--miss)}
+  .tools{display:flex;gap:16px;align-items:center;margin-top:16px;flex-wrap:wrap}
+  .link-btn{
+    font:inherit;font-size:.9rem;color:var(--muted);cursor:pointer;
+    background:none;border:none;padding:0;text-decoration:underline;text-underline-offset:3px;
+  }
+  .link-btn:hover{color:var(--accent)}
+  .link-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
 
-.bars{margin-top:6px}
-.bar{display:grid;grid-template-columns:54px 1fr 92px;align-items:center;gap:10px;padding:5px 0}
-.bar .lb{font-family:Archivo;font-weight:800;font-size:14px;text-align:right}
-.bar .tk{height:17px;background:#EDEDE8;border-radius:2px;overflow:hidden;position:relative}
-.bar .fl{height:100%;background:var(--hit);border-radius:2px 0 0 2px}
-.bar .rt{font-size:11px;color:var(--mut);font-variant-numeric:tabular-nums;text-align:right}
-.bar .rt b{color:var(--ink);font-weight:700}
-.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:22px}
-.sh{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px}
-.sd{font-size:11px;color:var(--mut);margin-bottom:8px;line-height:1.5}
+  .hint{
+    margin-top:16px;padding:14px 16px;border-left:3px solid var(--accent);
+    background:var(--accent-soft);border-radius:0 10px 10px 0;font-size:.95rem;
+  }
+  .hint b{color:var(--accent)}
 
-/* ---------- log ---------- */
-.row{border:1.5px solid var(--line);border-radius:4px;background:#fff;margin-bottom:9px;overflow:hidden}
-.row.hit{border-left:5px solid var(--hit)}
-.row.miss{border-left:5px solid var(--miss)}
-.row.pend{border-left:5px solid var(--pend)}
-.rtop{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 13px;cursor:pointer;flex-wrap:wrap}
-.rtop:hover{background:#FAFAF8}
-.who{display:flex;align-items:center;gap:9px;flex-wrap:wrap;min-width:0}
-.pn{font-family:Archivo;font-weight:700;font-size:15px}
-.pn.w{text-decoration:none}
-.pn.w::after{content:"·W";font-family:Inter;font-size:9px;font-weight:800;color:var(--hit);vertical-align:super;margin-left:2px}
-.pn.pick{box-shadow:inset 0 -7px 0 #DDE3FB}
-.vs{color:var(--mut);font-size:11px;font-weight:600}
-.meta{font-size:11px;color:var(--mut);display:flex;gap:9px;flex-wrap:wrap;align-items:center}
-.pill{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 7px;border-radius:99px}
-.pill.hit{background:var(--hit-bg);color:var(--hit)}
-.pill.miss{background:var(--miss-bg);color:var(--miss)}
-.pill.pend{background:var(--pend-bg);color:var(--pend)}
-.pl{font-family:Archivo;font-weight:800;font-size:15px;font-variant-numeric:tabular-nums}
-.rbody{display:none;padding:0 13px 13px;border-top:1px solid var(--line)}
-.row.open .rbody{display:block}
-.dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:12px}
-.dl .b{border:1px solid var(--line);border-radius:3px;padding:9px 11px;background:#FAFAF8}
-.dl .b .k{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);font-weight:700;margin-bottom:3px}
-.dl .b .l{font-size:12px;line-height:1.7;font-variant-numeric:tabular-nums}
-.dl .b .l b{font-family:Archivo;font-size:14px}
-.acts{display:flex;gap:7px;margin-top:12px;flex-wrap:wrap}
-.empty{color:var(--mut);font-size:13px;padding:22px;text-align:center;border:1.5px dashed var(--line);border-radius:4px}
+  .empty{color:var(--muted);text-align:center;padding:30px 0 6px;font-size:.95rem}
 
-.flag{border:1.5px solid #E9DDB4;background:#FCF8EA;border-radius:4px;padding:12px 14px;font-size:12px;color:#6B5A1E;line-height:1.6;margin-bottom:16px}
-.flag b{color:#463B12}
-@media(max-width:900px){.two{grid-template-columns:1fr}.rail{width:170px}}
-@media(max-width:640px){.app{flex-direction:column}.rail{width:100%;height:auto;position:static}main{padding:16px 14px 70px}.res3{grid-template-columns:1fr}}
+  /* slideshow */
+  .slide-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:16px;
+    padding:26px 22px;min-height:190px;display:flex;flex-direction:column;justify-content:center;
+  }
+  .slide-name{font-family:var(--font-display);font-weight:700;font-size:1.3rem;margin:0 0 10px}
+  .slide-rule{margin:0 0 14px}
+  .slide-eg{
+    font-family:var(--font-num);font-size:.95rem;font-variant-numeric:tabular-nums;
+    color:var(--muted);background:var(--bg);border:1px solid var(--border);
+    border-radius:10px;padding:10px 13px;white-space:pre-line;
+  }
+  .slide-nav{display:flex;align-items:center;justify-content:space-between;margin-top:16px}
+  .arrow{
+    font:inherit;font-size:1.3rem;line-height:1;color:var(--fg);cursor:pointer;
+    background:var(--surface);border:1px solid var(--border);border-radius:10px;
+    width:44px;height:44px;display:grid;place-items:center;
+  }
+  .arrow:hover{border-color:var(--accent);color:var(--accent)}
+  .arrow:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .counter{font-family:var(--font-num);color:var(--muted);font-size:.9rem;font-variant-numeric:tabular-nums}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
-</head>
-<body>
-<div class="app">
 
-  <!-- ================= LEFT RAIL ================= -->
-  <aside class="rail">
-    <div class="logo">Match Ledger</div>
-    <div class="grp">Events</div>
-    <div id="railEvents"></div>
-    <div class="grp">Players <span id="plCount"></span></div>
-    <div id="railPlayers"></div>
-    <div class="tools">
-      <button class="dk sm" onclick="exportJSON()">Export backup</button>
-      <button class="dk sm" onclick="document.getElementById('imp').click()">Import backup</button>
-      <button class="dk sm" onclick="exportCSV()">Export CSV</button>
-      <input type="file" id="imp" accept="application/json" style="display:none" onchange="importJSON(event)">
-    </div>
-  </aside>
+<div class="wrap">
+  <h1>Mental Math Drills</h1>
+  <p class="sub">Random problems that tell you which trick to use. Plus a flip-through list of tricks.</p>
 
-  <!-- ================= MAIN ================= -->
-  <main>
-    <div class="head">
-      <div>
-        <h1 id="hTitle">All matches</h1>
-        <div class="sub" id="hSub">—</div>
+  <div class="tabs" role="tablist">
+    <button class="tab" id="tab-practice" role="tab" aria-selected="true" aria-controls="panel-practice">Practice</button>
+    <button class="tab" id="tab-tricks" role="tab" aria-selected="false" aria-controls="panel-tricks">Tricks</button>
+  </div>
+
+  <!-- PRACTICE -->
+  <section id="panel-practice" role="tabpanel" aria-labelledby="tab-practice">
+    <p class="chips-label">Pick a type, or leave it on Random</p>
+    <div class="chips" id="chips"></div>
+
+    <button class="play" id="play">Play ▸</button>
+
+    <div class="card" id="card" hidden>
+      <span class="method" id="method"></span>
+      <div class="problem" id="problem"></div>
+      <div class="answer-row">
+        <input id="answer" type="text" inputmode="numeric" autocomplete="off" placeholder="your answer" aria-label="your answer">
+        <button class="check" id="check">Check</button>
       </div>
-      <button onclick="openForm()">+ Log a match</button>
-    </div>
-
-    <!-- energy strip -->
-    <div class="strip" id="strip"></div>
-
-    <!-- calculator -->
-    <div class="panel">
-      <h2>Quick numbers <span class="note">Run a player before you bet. Uses today's date. Nothing here is saved.</span></h2>
-      <div class="calcgrid" style="max-width:260px">
-        <div class="f"><label>Birthday</label><input type="date" id="cBday" onchange="runCalc()"></div>
+      <div class="feedback" id="feedback" aria-live="polite"></div>
+      <div class="tools">
+        <button class="link-btn" id="hintBtn">Hint</button>
+        <button class="link-btn" id="showBtn">Show answer</button>
       </div>
-      <div class="res" id="cRes"></div>
+      <div class="hint" id="hint" hidden></div>
     </div>
 
-    <!-- match form -->
-    <div class="panel" id="form" style="display:none">
-      <h2><span id="formTitle">Log a match</span> <span class="note">Leave the winner blank if it hasn't been played.</span></h2>
+    <p class="empty" id="empty">Hit Play to get a problem.</p>
+  </section>
 
-      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:14px">
-        <div class="f"><label>Event</label><input id="fEvent" list="evList" placeholder="e.g. Concord Iasi Open"><datalist id="evList"></datalist></div>
-        <div class="f"><label>Date</label><input type="date" id="fDate" onchange="formPreview()"></div>
-        <div class="f"><label>Format</label><select id="fFormat" onchange="setsOpts()"><option value="3">Best of 3</option><option value="5">Best of 5</option></select></div>
-        <div class="f"><label>Sets played</label><select id="fSets"></select></div>
-      </div>
-
-      <div class="two">
-        <div class="side">
-          <h3>Player A</h3>
-          <div class="grid" style="grid-template-columns:1fr 1fr">
-            <div class="f" style="grid-column:1/-1"><label>Name</label><input id="fAName" list="plList" oninput="autofill('A')" placeholder="Type or pick a saved player"></div>
-            <div class="f"><label>Birthday</label><input type="date" id="fABday" onchange="formPreview()"></div>
-            <div class="f"><label>Ranking</label><input type="number" id="fARank" min="1" onchange="formPreview()" placeholder="e.g. 42"></div>
-          </div>
-          <div class="mini" id="pvA"></div>
-        </div>
-        <div class="side">
-          <h3>Player B</h3>
-          <div class="grid" style="grid-template-columns:1fr 1fr">
-            <div class="f" style="grid-column:1/-1"><label>Name</label><input id="fBName" list="plList" oninput="autofill('B')" placeholder="Type or pick a saved player"></div>
-            <div class="f"><label>Birthday</label><input type="date" id="fBBday" onchange="formPreview()"></div>
-            <div class="f"><label>Ranking</label><input type="number" id="fBRank" min="1" onchange="formPreview()" placeholder="e.g. 87"></div>
-          </div>
-          <div class="mini" id="pvB"></div>
-        </div>
-      </div>
-      <datalist id="plList"></datalist>
-
-      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr));margin-top:14px">
-        <div class="f"><label>My pick</label><select id="fPick"><option value="A">Player A</option><option value="B">Player B</option></select></div>
-        <div class="f"><label>Odds (American)</label><input type="number" id="fOdds" placeholder="-150 or +180"></div>
-        <div class="f"><label>Stake ($)</label><input type="number" id="fStake" min="0" step="0.01" placeholder="25"></div>
-        <div class="f"><label>Winner</label><select id="fWin"><option value="">Not played yet</option><option value="A">Player A</option><option value="B">Player B</option></select></div>
-      </div>
-
-      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin-top:11px">
-        <div class="f"><label>Location energy</label><input id="fLoc" placeholder="Free text — city founded, vibe, anything"></div>
-        <div class="f"><label>Day energy</label><input id="fDay" placeholder="Free text — your read on the day"></div>
-        <div class="f"><label>Notes</label><input id="fNotes" placeholder="Anything else"></div>
-      </div>
-
-      <div class="acts">
-        <button onclick="saveMatch()">Save match</button>
-        <button class="g" onclick="closeForm()">Cancel</button>
-        <span id="fErr" style="color:var(--miss);font-size:12px;align-self:center;font-weight:600"></span>
-      </div>
+  <!-- TRICKS -->
+  <section id="panel-tricks" role="tabpanel" aria-labelledby="tab-tricks" hidden>
+    <div class="slide-card">
+      <h2 class="slide-name" id="slideName"></h2>
+      <p class="slide-rule" id="slideRule"></p>
+      <div class="slide-eg" id="slideEg"></div>
     </div>
-
-    <!-- stats -->
-    <div class="panel">
-      <h2>The record <span class="note" id="statScope"></span></h2>
-      <div class="kpis" id="kpis"></div>
-      <div class="statgrid" style="margin-top:20px" id="statgrid"></div>
+    <div class="slide-nav">
+      <button class="arrow" id="prev" aria-label="Previous trick">‹</button>
+      <span class="counter" id="counter"></span>
+      <button class="arrow" id="next" aria-label="Next trick">›</button>
     </div>
-
-    <!-- log -->
-    <div class="panel">
-      <h2>Match log <span class="note">Click a row to open it.</span></h2>
-      <div id="log"></div>
-    </div>
-
-    <div class="flag">
-      <b>BaZi calibration:</b> today (10 Jul 2026) computes as <b>乙酉 · Yi Wood Rooster</b> day, <b>未 Goat</b> month, <b>丙午 Bing Horse</b> year. If your system shows a different <i>day</i> pillar, tell me and I shift one number — the whole 60-day cycle lines up from there.
-    </div>
-  </main>
+  </section>
 </div>
 
 <script>
-/* =========================================================
-   NUMEROLOGY ENGINE
-   Rules:
-   - Year: digits summed ONCE, kept as-is. 1999→28, 2025→9, 2026→10
-   - Month/day: two forms — whole (10) or digit-summed (1)
-   - Never mix forms. All whole, or all reduced.
-   - Masters 11/22/33 never reduce, and lock only themselves.
-   - If one path lands on a master and another doesn't, the master wins.
-   ========================================================= */
-const MASTERS=[11,22,33];        // get the blue M tag
-const HOLD=[11,22,33,28];        // if a TOTAL lands on one of these, keep it. everything else reduces.
-const isMaster=n=>MASTERS.includes(n);
-const isHeld=n=>HOLD.includes(n);
-const digitSum=n=>String(Math.abs(n)).split('').reduce((a,c)=>a+ +c,0);
-// reduce a TOTAL. stops on a held number.
-function reduceNum(n){let x=Math.abs(n);while(x>9&&!isHeld(x))x=digitSum(x);return x;}
-// a month/day/year's REDUCED form is ONE digit-sum pass. 28 -> 10, not 1.
-const compRed=n=>isMaster(n)?n:digitSum(n);
-const yearVal=y=>digitSum(y);
-const comp=n=>({whole:n, red:compRed(n)});
-function finish(parts){
-  const total=parts.reduce((a,b)=>a+b,0);
-  return {parts, total, final: reduceNum(total)};
-}
+(function(){
+  "use strict";
+  var ri = function(lo,hi){ return Math.floor(Math.random()*(hi-lo+1))+lo; };
+  var pad2 = function(x){ return ("0"+x).slice(-2); };
 
-function buildPaths(m,d,yv){
-  const M=comp(m),D=comp(d),L=[];
-  L.push(finish([M.red,D.red,yv]));
-  if(M.whole!==M.red||D.whole!==D.red) L.push(finish([M.whole,D.whole,yv]));
-  return L;
-}
-function core(m,d,y){
-  const ps=buildPaths(m,d,yearVal(y));
-  const mas=ps.find(p=>isHeld(p.final));
-  return {paths:ps, value:mas?mas.final:ps[0].final, primary:ps[0]};
-}
-// personal day = personal-year TOTAL + universal-day TOTAL, path matched to path
-function personalDay(py,ud){
-  const L=[];
-  const n=Math.max(py.paths.length,ud.paths.length);
-  for(let i=0;i<n;i++){
-    const a=py.paths[Math.min(i,py.paths.length-1)], b=ud.paths[Math.min(i,ud.paths.length-1)];
-    const r=finish([a.total,b.total]);
-    if(!L.some(x=>x.total===r.total)) L.push(r);
-  }
-  const mas=L.find(p=>isHeld(p.final));
-  return {paths:L, value:mas?mas.final:L[0].final, primary:L[0]};
-}
-// personal month = personal year + calendar month
-function combineWith(base, addM){
-  const M=comp(addM), L=[];
-  L.push(finish([base.value,M.red]));
-  if(M.whole!==M.red){ const r=finish([base.value,M.whole]); if(r.total!==L[0].total) L.push(r); }
-  const mas=L.find(p=>isHeld(p.final));
-  return {paths:L, value:mas?mas.final:L[0].final, primary:L[0]};
-}
-const waysHTML=o=>o.paths.map(p=>'<div><b>'+p.parts.join(' + ')+' = '+p.total+'</b></div>').join('');
-
-/* ---- date helpers ---- */
-function parts(iso){const[a,b,c]=iso.split('-').map(Number);return{y:a,m:b,d:c};}
-function ageAt(bIso,dIso){const b=parts(bIso),t=parts(dIso);let a=t.y-b.y;if(t.m<b.m||(t.m===b.m&&t.d<b.d))a--;return a;}
-function lastBdayYear(bIso,dIso){const b=parts(bIso),t=parts(dIso);
-  const passed=(t.m>b.m)||(t.m===b.m&&t.d>=b.d); return passed?t.y:t.y-1;}
-
-/* ---- the whole numeric profile of a person on a date ---- */
-function profile(bIso,dIso){
-  const b=parts(bIso), t=parts(dIso);
-  const lp=core(b.m,b.d,b.y);
-  const py=core(b.m,b.d,lastBdayYear(bIso,dIso));
-  const calM=(t.d>=b.d)?t.m:(t.m===1?12:t.m-1);   // personal month flips on birth day-of-month
-  const pm=combineWith(py,calM);
-  const ud=core(t.m,t.d,t.y);
-  const pd=personalDay(py,ud);
-  return {age:ageAt(bIso,dIso), lp, py, pm, pd, ud};
-}
-
-/* =========================================================
-   BAZI
-   ========================================================= */
-const S_CN=['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
-const S_EN=['Jia','Yi','Bing','Ding','Wu','Ji','Geng','Xin','Ren','Gui'];
-const B_CN=['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
-const B_EN=['Rat','Ox','Tiger','Rabbit','Dragon','Snake','Horse','Goat','Monkey','Rooster','Dog','Pig'];
-const S_EL=['Wood','Wood','Fire','Fire','Earth','Earth','Metal','Metal','Water','Water'];
-const DAY_OFFSET=49; // <- one number calibrates the whole 60-day cycle
-
-function jdn(y,m,d){const a=Math.floor((14-m)/12),yy=y+4800-a,mm=m+12*a-3;
-  return d+Math.floor((153*mm+2)/5)+365*yy+Math.floor(yy/4)-Math.floor(yy/100)+Math.floor(yy/400)-32045;}
-function solarLong(y,m,d){const jd=jdn(y,m,d)-0.5+0.5,T=(jd-2451545)/36525;
-  const L0=280.46646+36000.76983*T+0.0003032*T*T;
-  const M=(357.52911+35999.05029*T)*Math.PI/180;
-  const C=(1.914602-0.004817*T)*Math.sin(M)+(0.019993-0.000101*T)*Math.sin(2*M)+0.000289*Math.sin(3*M);
-  return (((L0+C)%360)+360)%360;}
-const solarMonthIdx=(y,m,d)=>Math.floor(((((solarLong(y,m,d)-315)%360)+360)%360)/30); // 0=Tiger
-function solarYear(y,m,d){ return (m===1||(m===2&&d<4))? y-1 : y; }
-function yearPillar(y,m,d){const Y=solarYear(y,m,d);return{s:((Y-4)%10+10)%10,b:((Y-4)%12+12)%12};}
-function monthPillar(y,m,d){const yp=yearPillar(y,m,d),i=solarMonthIdx(y,m,d);
-  return {s:((yp.s%5)*2+2+i)%10, b:(2+i)%12};}
-function dayPillar(y,m,d){const i=((jdn(y,m,d)+DAY_OFFSET)%60+60)%60;return{s:i%10,b:i%12};}
-const gz=p=>S_CN[p.s]+B_CN[p.b];
-const gzEn=p=>S_EN[p.s]+' '+B_EN[p.b];
-function baziOf(iso){const t=parts(iso);
-  return {y:yearPillar(t.y,t.m,t.d), m:monthPillar(t.y,t.m,t.d), d:dayPillar(t.y,t.m,t.d)};}
-
-/* =========================================================
-   STATE
-   ========================================================= */
-const ME='1992-09-07';                     // your birthday — drives "my personal day"
-const ENEMY=[[1,9],[7,8]];                 // enemy pairs
-let matches=[], players=[], filter='ALL', editing=null;
-
-const load=()=>{try{matches=JSON.parse(localStorage.getItem('ml_m')||'[]');players=JSON.parse(localStorage.getItem('ml_p')||'[]');}catch(e){matches=[];players=[];}};
-const save=()=>{try{localStorage.setItem('ml_m',JSON.stringify(matches));localStorage.setItem('ml_p',JSON.stringify(players));}catch(e){}};
-const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const todayISO=()=>new Date().toISOString().slice(0,10);
-const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const fdate=iso=>{const t=parts(iso);return MN[t.m-1]+' '+t.d+', '+t.y;};
-
-/* payout from American odds */
-function payout(odds,stake,won){
-  if(odds==null||stake==null||isNaN(odds)||isNaN(stake))return null;
-  const p = odds>0 ? stake*(odds/100) : stake*(100/Math.abs(odds));
-  return won ? p : -stake;
-}
-const money=n=>(n<0?'-':'+')+'$'+Math.abs(n).toFixed(2);
-
-/* =========================================================
-   ENERGY STRIP
-   ========================================================= */
-function renderStrip(){
-  const iso=todayISO(), t=parts(iso), yv=yearVal(t.y);
-  const uy=reduceNum(t.y);
-  const umL=[]; const M=comp(t.m);
-  umL.push(reduceNum(M.red+yv)); if(M.whole!==M.red) umL.push(reduceNum(M.whole+yv));
-  const um=umL.find(isMaster)||umL[0];
-  const ud=core(t.m,t.d,t.y);
-  const bz=baziOf(iso);
-  document.getElementById('strip').innerHTML=
-     cell('Year',t.y,'')
-    +cell('Universal year',uy,'')
-    +cell('Universal month',um,MN[t.m-1])
-    +cell('Universal day',ud.value,ud.paths.map(p=>p.total).join(' / '))
-    +cell('BaZi year',gz(bz.y),gzEn(bz.y))
-    +cell('BaZi month',B_CN[bz.m.b],B_EN[bz.m.b])
-    +cell('BaZi day',gz(bz.d),gzEn(bz.d)+' · '+S_EL[bz.d.s]);
-}
-const cell=(k,v,x)=>'<div class="c"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="x">'+(x||'&nbsp;')+'</div></div>';
-
-/* =========================================================
-   CALCULATOR
-   ========================================================= */
-function runCalc(){
-  const b=document.getElementById('cBday').value;
-  const box=document.getElementById('cRes');
-  if(!b){box.innerHTML='';return;}
-  const pr=profile(b, todayISO());
-  const bd=parts(b).d;                       // secondary energy = the day of the month
-  const bdRed=compRed(bd);
-  const sec='<div class="rc"><div class="k">Secondary energy</div>'
-    +'<div class="v num">'+bd+(isMaster(bd)?'<span class="m">M</span>':'')+'</div>'
-    +'<div class="under">'+bdRed+'</div></div>';
-  box.innerHTML=
-     '<div class="res3">'
-    + card('Age',pr.age,null)
-    + card('Life path',pr.lp.value,pr.lp)
-    + sec
-    + '</div>'
-    + '<div class="res3">'
-    + card('Personal year',pr.py.value,pr.py)
-    + card('Personal month',pr.pm.value,pr.pm)
-    + card('Personal day',pr.pd.value,pr.pd)
-    + '</div>';
-}
-function card(k,v,obj){
-  const mas=isMaster(v)?'<span class="m">M</span>':'';
-  // frozen total (a master was in the sum) -> show its reduced value in parens: 28(1)
-  const par=(!isMaster(v)&&v>9)?'<span class="m" style="color:var(--mut);font-weight:600">('+(function(x){let z=x;while(z>9)z=digitSum(z);return z;})(v)+')</span>':'';
-  const dd=obj
-    ? (obj.paths.length>1?'<div class="ow">other ways</div>':'')+'<div class="ways">'+waysHTML(obj)+'</div>'
-    : '';
-  return '<div class="rc"><div class="k">'+k+'</div><div class="v num">'+v+mas+par+'</div>'+dd+'</div>';
-}
-
-/* =========================================================
-   FORM
-   ========================================================= */
-function setsOpts(){
-  const f=+document.getElementById('fFormat').value, s=document.getElementById('fSets'), cur=s.value;
-  const opts = f===3 ? [2,3] : [3,4,5];
-  s.innerHTML='<option value="">—</option>'+opts.map(o=>'<option value="'+o+'">'+o+' sets</option>').join('');
-  if(opts.includes(+cur)) s.value=cur;
-}
-function autofill(side){
-  const nm=document.getElementById('f'+side+'Name').value.trim().toLowerCase();
-  const p=players.find(x=>x.name.toLowerCase()===nm);
-  if(p){ document.getElementById('f'+side+'Bday').value=p.bday;
-         if(p.rank) document.getElementById('f'+side+'Rank').value=p.rank; }
-  formPreview();
-}
-function formPreview(){
-  const d=document.getElementById('fDate').value||todayISO();
-  ['A','B'].forEach(s=>{
-    const b=document.getElementById('f'+s+'Bday').value, box=document.getElementById('pv'+s);
-    if(!b){box.innerHTML='';return;}
-    const pr=profile(b,d);
-    box.innerHTML=mv('Age',pr.age)+mv('LP',pr.lp.value)+mv('P.Year',pr.py.value)+mv('P.Month',pr.pm.value)+mv('P.Day',pr.pd.value);
-  });
-}
-const mv=(k,v)=>'<div class="mv"><div class="k">'+k+'</div><div class="v num">'+v+'</div></div>';
-
-function openForm(m){
-  editing = m ? m.id : null;
-  document.getElementById('formTitle').textContent = m ? 'Edit match' : 'Log a match';
-  document.getElementById('fErr').textContent='';
-  const g=id=>document.getElementById(id);
-  g('fEvent').value = m ? m.event : (filter!=='ALL'?filter:'');
-  g('fDate').value  = m ? m.date  : todayISO();
-  g('fFormat').value= m ? m.format: '3';
-  setsOpts();
-  g('fSets').value  = m && m.sets ? m.sets : '';
-  g('fAName').value = m ? m.a.name : ''; g('fABday').value = m ? m.a.bday : ''; g('fARank').value = m && m.a.rank ? m.a.rank : '';
-  g('fBName').value = m ? m.b.name : ''; g('fBBday').value = m ? m.b.bday : ''; g('fBRank').value = m && m.b.rank ? m.b.rank : '';
-  g('fPick').value  = m ? m.pick : 'A';
-  g('fOdds').value  = m && m.odds!=null ? m.odds : '';
-  g('fStake').value = m && m.stake!=null ? m.stake : '';
-  g('fWin').value   = m ? (m.winner||'') : '';
-  g('fLoc').value   = m ? (m.loc||'') : '';
-  g('fDay').value   = m ? (m.dayE||'') : '';
-  g('fNotes').value = m ? (m.notes||'') : '';
-  g('form').style.display='block';
-  formPreview();
-  g('form').scrollIntoView({behavior:'smooth',block:'center'});
-}
-function closeForm(){ editing=null; document.getElementById('form').style.display='none'; }
-
-function saveMatch(){
-  const g=id=>document.getElementById(id).value.trim();
-  const err=document.getElementById('fErr');
-  const ev=g('fEvent'), dt=g('fDate'), an=g('fAName'), ab=g('fABday'), bn=g('fBName'), bb=g('fBBday');
-  if(!ev||!dt||!an||!ab||!bn||!bb){ err.textContent='Need event, date, and both players with birthdays.'; return; }
-  err.textContent='';
-  const rec={
-    id: editing || Date.now(),
-    event: ev, date: dt,
-    format: +g('fFormat'), sets: g('fSets')?+g('fSets'):null,
-    a:{name:an, bday:ab, rank:g('fARank')?+g('fARank'):null},
-    b:{name:bn, bday:bb, rank:g('fBRank')?+g('fBRank'):null},
-    pick: g('fPick'),
-    odds: g('fOdds')!==''?+g('fOdds'):null,
-    stake: g('fStake')!==''?+g('fStake'):null,
-    winner: g('fWin')||'',
-    loc:g('fLoc'), dayE:g('fDay'), notes:g('fNotes')
+  // ---- the drillable problem types ----
+  var TYPES = {
+    two11: {
+      label:"2-digit × 11",
+      method:"Two-digit number × 11",
+      gen:function(){
+        var a=ri(10,99), ans=a*11, t=Math.floor(a/10), o=a%10, s=t+o, hint;
+        if(s<10){
+          hint="Add the two digits of "+a+": <b>"+t+" + "+o+" = "+s+"</b>. Drop it in the middle → "+t+" "+s+" "+o+" = <b>"+ans+"</b>.";
+        } else {
+          hint="Add the two digits of "+a+": <b>"+t+" + "+o+" = "+s+"</b>. That's two digits, so write the "+(s%10)+" and carry the 1 left: "+t+" + 1 = "+(t+1)+". → <b>"+ans+"</b>.";
+        }
+        return {display:a+" × 11", answer:ans, hint:hint};
+      }
+    },
+    three11:{
+      label:"3-digit × 11",
+      method:"Three-digit number × 11",
+      gen:function(){
+        var a=ri(100,999), ans=a*11;
+        var d1=Math.floor(a/100), d2=Math.floor(a/10)%10, d3=a%10;
+        var hint="Keep the first digit ("+d1+") and last digit ("+d3+"). For the middle, add each side-by-side pair: <b>"+d1+"+"+d2+"="+(d1+d2)+"</b> and <b>"+d2+"+"+d3+"="+(d2+d3)+"</b>. Place them in, carrying left whenever a sum hits 10 or more. → <b>"+ans+"</b>.";
+        return {display:a+" × 11", answer:ans, hint:hint};
+      }
+    },
+    sq2:{
+      label:"Square ⋯5 (2-digit)",
+      method:"Squaring a two-digit number ending in 5",
+      gen:function(){
+        var t=ri(1,9), n=t*10+5, ans=n*n;
+        var hint="Take the first digit <b>"+t+"</b>, times the next number up <b>"+(t+1)+"</b>: "+t+"×"+(t+1)+"="+(t*(t+1))+". Stick 25 on the end → <b>"+ans+"</b>.";
+        return {display:n+"²", answer:ans, hint:hint};
+      }
+    },
+    sq3:{
+      label:"Square ⋯5 (3-digit)",
+      method:"Squaring a three-digit number ending in 5",
+      gen:function(){
+        var h=ri(10,99), n=h*10+5, ans=n*n;
+        var hint="Take <b>"+h+"</b> (the number without the last 5), times the next number up <b>"+(h+1)+"</b>: "+h+"×"+(h+1)+"="+(h*(h+1))+". Attach 25 → <b>"+ans+"</b>.";
+        return {display:n+"²", answer:ans, hint:hint};
+      }
+    },
+    same10:{
+      label:"Same first, last add to 10",
+      method:"Same first digit, last digits add to 10",
+      gen:function(){
+        var f=ri(1,9), a1=ri(1,9), a2=10-a1;
+        var n1=f*10+a1, n2=f*10+a2, ans=n1*n2;
+        var start=f*(f+1), lastp=a1*a2;
+        var hint="First digit <b>"+f+"</b> times the next number up <b>"+(f+1)+"</b> = "+start+". Then attach the last digits multiplied: "+a1+"×"+a2+"="+lastp+", as two digits ("+pad2(lastp)+"). → <b>"+ans+"</b>.";
+        return {display:n1+" × "+n2, answer:ans, hint:hint};
+      }
+    },
+    teen1:{
+      label:"11–19 × single digit",
+      method:"A number from 11 to 19 × a single digit",
+      gen:function(){
+        var t=ri(11,19), s=ri(2,9), ans=t*s, o=t%10;
+        var hint=s+" × 10 = "+(s*10)+". "+s+" × "+o+" = "+(s*o)+". Add them: <b>"+(s*10)+" + "+(s*o)+" = "+ans+"</b>.";
+        return {display:t+" × "+s, answer:ans, hint:hint};
+      }
+    },
+    bothteen:{
+      label:"Both 10–20",
+      method:"Two numbers both between 10 and 20",
+      gen:function(){
+        var a=ri(11,19), b=ri(11,19), ans=a*b;
+        var bo=b%10, step=(a+bo)*10, lastp=(a%10)*(b%10);
+        var hint="Take "+a+" and add "+b+"'s last digit ("+bo+"): "+a+"+"+bo+"="+(a+bo)+". Times 10 → "+step+". Then add the last digits multiplied: "+(a%10)+"×"+(b%10)+"="+lastp+". <b>"+step+" + "+lastp+" = "+ans+"</b>.";
+        return {display:a+" × "+b, answer:ans, hint:hint};
+      }
+    }
   };
-  if(editing){ matches=matches.map(m=>m.id===editing?rec:m); } else { matches.push(rec); }
-  [rec.a,rec.b].forEach(p=>{
-    const i=players.findIndex(x=>x.name.toLowerCase()===p.name.toLowerCase());
-    if(i<0) players.push({name:p.name,bday:p.bday,rank:p.rank});
-    else { players[i].bday=p.bday; if(p.rank) players[i].rank=p.rank; }
-  });
-  save(); closeForm(); renderAll();
-}
-function delMatch(id){ if(!confirm('Delete this match?'))return; matches=matches.filter(m=>m.id!==id); save(); renderAll(); }
-function quickWin(id,w){ const m=matches.find(x=>x.id===id); if(!m)return; m.winner=w; save(); renderAll(); }
+  var ORDER = ["two11","three11","sq2","sq3","same10","teen1","bothteen"];
 
-/* =========================================================
-   RAIL
-   ========================================================= */
-function renderRail(){
-  const counts={};
-  matches.forEach(m=>counts[m.event]=(counts[m.event]||0)+1);
-  const evs=Object.keys(counts).sort();
-  document.getElementById('railEvents').innerHTML =
-    row2('ALL','All matches',matches.length) + evs.map(e=>row2(e,e,counts[e])).join('')
-    + (evs.length?'':'<div class="pl" style="font-style:italic">No events yet</div>');
-  document.getElementById('evList').innerHTML = evs.map(e=>'<option value="'+esc(e)+'">').join('');
-  document.getElementById('plList').innerHTML = players.map(p=>'<option value="'+esc(p.name)+'">').join('');
-  document.getElementById('plCount').textContent = players.length?'('+players.length+')':'';
-  document.getElementById('railPlayers').innerHTML = players.length
-    ? players.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(p=>'<div class="pl"><span style="color:#CFCFCB">'+esc(p.name)+'</span><span>'+(p.rank?'#'+p.rank:'')+'</span></div>').join('')
-    : '<div class="pl" style="font-style:italic">None saved yet</div>';
-}
-const row2=(key,label,c)=>'<div class="ev '+(filter===key?'on':'')+'" onclick="setFilter(\''+esc(key).replace(/'/g,"\\'")+'\')"><span>'+esc(label)+'</span><span class="c">'+c+'</span></div>';
-function setFilter(k){ filter=k; renderAll(); window.scrollTo({top:0,behavior:'smooth'}); }
+  // ---- state ----
+  var mode = "random";
+  var current = null;
 
-/* =========================================================
-   STATS
-   ========================================================= */
-const shown=()=>filter==='ALL'?matches:matches.filter(m=>m.event===filter);
-const settled=()=>shown().filter(m=>m.winner==='A'||m.winner==='B');
-
-function renderStats(){
-  const S=settled(), all=shown();
-  document.getElementById('statScope').textContent =
-    S.length+' settled'+(all.length-S.length?' · '+(all.length-S.length)+' pending (not counted)':'');
-
-  const wins=S.filter(m=>m.winner===m.pick).length;
-  const wr=S.length?Math.round(wins/S.length*100):0;
-  let pl=0, staked=0;
-  S.forEach(m=>{const p=payout(m.odds,m.stake,m.winner===m.pick); if(p!==null){pl+=p; staked+=m.stake;}});
-  const roi = staked? (pl/staked*100):0;
-
-  document.getElementById('kpis').innerHTML=
-     kpi('Win rate', wr+'%', wins+'-'+(S.length-wins))
-    +kpi('Profit / loss', money(pl), staked?'$'+staked.toFixed(2)+' staked':'no stakes logged', pl>=0?'pos':'neg')
-    +kpi('ROI', (roi>=0?'+':'')+roi.toFixed(1)+'%', 'return on money risked', roi>=0?'pos':'neg')
-    +kpi('Matches', all.length, S.length+' settled');
-
-  const G=[];
-  G.push(block('My win rate by MY personal day',
-    'Your own number on match day (born 9/7/1992). Are you sharper on some days than others?',
-    tally(S, m=>profile(ME,m.date).pd.value, m=>m.winner===m.pick)));
-  G.push(block('My win rate by the PICK\'s personal year',
-    'The number your chosen player was running on match day.',
-    tally(S, m=>profile(m[m.pick].bday, m.date).py.value, m=>m.winner===m.pick)));
-  G.push(block('My win rate by ranking gap',
-    'How far apart the two players were ranked. Blank if a ranking is missing.',
-    tally(S.filter(m=>m.a.rank&&m.b.rank), m=>rankBucket(Math.abs(m.a.rank-m.b.rank)), m=>m.winner===m.pick, RB)));
-  G.push(block('Older player — how often does he actually win?',
-    'Not about your picks. Just: does age win matches? Bucketed by how many years older the winner-or-loser was.',
-    tally(S.filter(m=>ageAt(m.a.bday,m.date)!==ageAt(m.b.bday,m.date)),
-      m=>ageBucket(Math.abs(ageAt(m.a.bday,m.date)-ageAt(m.b.bday,m.date))),
-      m=>{const older = ageAt(m.a.bday,m.date)>ageAt(m.b.bday,m.date)?'A':'B'; return m.winner===older;}, AB)));
-  G.push(block('Sets played','How often it went the distance.',
-    tally(S.filter(m=>m.sets), m=>m.sets+' sets', ()=>true, null, true)));
-  G.push(enemyBlock(S));
-  document.getElementById('statgrid').innerHTML=G.join('');
-}
-const kpi=(k,v,x,c)=>'<div class="kpi"><div class="k">'+k+'</div><div class="v num '+(c||'')+'">'+v+'</div><div class="x">'+x+'</div></div>';
-const block=(h,d,body)=>'<div><div class="sh">'+h+'</div><div class="sd">'+d+'</div>'+body+'</div>';
-
-const RB=['0-5','6-15','16-40','41+'];
-const rankBucket=g=>g<=5?'0-5':g<=15?'6-15':g<=40?'16-40':'41+';
-const AB=['1-2 yr','3-5 yr','6-9 yr','10+ yr'];
-const ageBucket=g=>g<=2?'1-2 yr':g<=5?'3-5 yr':g<=9?'6-9 yr':'10+ yr';
-
-function tally(list,keyFn,winFn,order,countOnly){
-  if(!list.length) return '<div class="sd" style="font-style:italic">Nothing logged yet.</div>';
-  const g={};
-  list.forEach(m=>{const k=keyFn(m); if(!g[k])g[k]={w:0,n:0}; g[k].n++; if(winFn(m))g[k].w++;});
-  let keys=Object.keys(g);
-  keys = order ? order.filter(k=>g[k]) : keys.sort((a,b)=>(+a||99)-(+b||99));
-  const max=Math.max(...keys.map(k=>g[k].n));
-  return '<div class="bars">'+keys.map(k=>{
-    const {w,n}=g[k], pct=Math.round(w/n*100);
-    const width = countOnly ? (n/max*100) : pct;
-    const right = countOnly ? '<b>'+n+'</b> matches' : '<b>'+pct+'%</b> · '+w+'-'+(n-w);
-    return '<div class="bar"><div class="lb">'+k+'</div><div class="tk"><div class="fl" style="width:'+width+'%'+(countOnly?';background:var(--ink)':(pct<50?';background:var(--miss)':''))+'"></div></div><div class="rt">'+right+'</div></div>';
-  }).join('')+'</div>';
-}
-
-/* enemy numbers: winner's LIFE PATH vs the UNIVERSAL DAY */
-function enemyBlock(S){
-  const rows=[];
-  ENEMY.forEach(([x,y])=>{
-    [[x,y],[y,x]].forEach(([lp,day])=>{
-      let w=0,n=0;
-      S.forEach(m=>{
-        const ud=core(parts(m.date).m,parts(m.date).d,parts(m.date).y).value;
-        if(ud!==day) return;
-        ['a','b'].forEach(s=>{
-          if(core(parts(m[s].bday).m,parts(m[s].bday).d,parts(m[s].bday).y).value!==lp) return;
-          n++; if(m.winner===s.toUpperCase()) w++;
-        });
+  // ---- build chips ----
+  var chips = document.getElementById("chips");
+  function makeChip(key,label){
+    var b=document.createElement("button");
+    b.className="chip"; b.textContent=label;
+    b.setAttribute("aria-pressed", key===mode ? "true":"false");
+    b.addEventListener("click",function(){
+      mode=key;
+      Array.prototype.forEach.call(chips.children,function(c){
+        c.setAttribute("aria-pressed", c===b ? "true":"false");
       });
-      if(n) rows.push({k:'LP '+lp+' on a '+day+' day', w, n});
     });
+    return b;
+  }
+  chips.appendChild(makeChip("random","Random"));
+  ORDER.forEach(function(k){ chips.appendChild(makeChip(k,TYPES[k].label)); });
+
+  // ---- practice refs ----
+  var card=document.getElementById("card");
+  var empty=document.getElementById("empty");
+  var methodEl=document.getElementById("method");
+  var problemEl=document.getElementById("problem");
+  var answerEl=document.getElementById("answer");
+  var feedbackEl=document.getElementById("feedback");
+  var hintEl=document.getElementById("hint");
+  var hintBtn=document.getElementById("hintBtn");
+  var showBtn=document.getElementById("showBtn");
+
+  function play(){
+    var key = mode==="random" ? ORDER[ri(0,ORDER.length-1)] : mode;
+    current = TYPES[key].gen();
+    methodEl.textContent = TYPES[key].method;
+    problemEl.textContent = current.display;
+    answerEl.value="";
+    feedbackEl.textContent=""; feedbackEl.className="feedback";
+    hintEl.innerHTML=current.hint; hintEl.hidden=true; hintBtn.textContent="Hint";
+    empty.hidden=true; card.hidden=false;
+    answerEl.focus();
+  }
+  function check(){
+    if(!current) return;
+    var val=answerEl.value.replace(/[,\s]/g,"");
+    if(val===""){ feedbackEl.textContent="Type an answer first."; feedbackEl.className="feedback"; return; }
+    if(parseInt(val,10)===current.answer){
+      feedbackEl.textContent="Correct ✓"; feedbackEl.className="feedback good";
+    } else {
+      feedbackEl.textContent="Not quite — try again."; feedbackEl.className="feedback bad";
+    }
+  }
+  document.getElementById("play").addEventListener("click",play);
+  document.getElementById("check").addEventListener("click",check);
+  answerEl.addEventListener("keydown",function(e){ if(e.key==="Enter") check(); });
+  hintBtn.addEventListener("click",function(){
+    hintEl.hidden=!hintEl.hidden;
+    hintBtn.textContent=hintEl.hidden?"Hint":"Hide hint";
   });
-  const body = rows.length
-    ? '<div class="bars">'+rows.map(r=>{const pct=Math.round(r.w/r.n*100);
-        return '<div class="bar" style="grid-template-columns:118px 1fr 92px"><div class="lb" style="font-size:12px">'+r.k+'</div><div class="tk"><div class="fl" style="width:'+pct+'%'+(pct<50?';background:var(--miss)':'')+'"></div></div><div class="rt"><b>'+pct+'%</b> · '+r.w+'-'+(r.n-r.w)+'</div></div>';}).join('')+'</div>'
-    : '<div class="sd" style="font-style:italic">No enemy-number clashes logged yet.</div>';
-  return block('Enemy numbers — 1 vs 9, 7 vs 8',
-    'The winner\'s life path against the universal day. Do 9s win on 1 days? This ignores your picks entirely — it\'s about the sport, not your betting.', body);
-}
-
-/* =========================================================
-   LOG
-   ========================================================= */
-function renderLog(){
-  const L=shown().slice().sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
-  const box=document.getElementById('log');
-  if(!L.length){ box.innerHTML='<div class="empty">No matches here yet. Hit <b>+ Log a match</b> to start.</div>'; return; }
-  box.innerHTML=L.map(m=>{
-    const done=m.winner==='A'||m.winner==='B';
-    const hit=done&&m.winner===m.pick;
-    const cls=!done?'pend':(hit?'hit':'miss');
-    const p=done?payout(m.odds,m.stake,hit):null;
-    const pa=profile(m.a.bday,m.date), pb=profile(m.b.bday,m.date), bz=baziOf(m.date);
-    const mine=profile(ME,m.date);
-    const nm=(s,pr)=>'<span class="pn '+(m.winner===s?'w':'')+' '+(m.pick===s?'pick':'')+'">'+esc(m[s.toLowerCase()].name)+'</span>';
-    return '<div class="row '+cls+'" id="r'+m.id+'">'
-      +'<div class="rtop" onclick="document.getElementById(\'r'+m.id+'\').classList.toggle(\'open\')">'
-        +'<div class="who">'+nm('A')+'<span class="vs">vs</span>'+nm('B')+'</div>'
-        +'<div class="meta">'
-          +'<span>'+esc(m.event)+'</span><span>·</span><span>'+fdate(m.date)+'</span>'
-          +(m.sets?'<span>·</span><span>'+m.sets+' sets</span>':'')
-          +'<span class="pill '+cls+'">'+(!done?'pending':(hit?'hit':'miss'))+'</span>'
-          +(p!==null?'<span class="pl '+(p>=0?'pos':'neg')+'">'+money(p)+'</span>':'')
-        +'</div>'
-      +'</div>'
-      +'<div class="rbody">'
-        +'<div class="dl">'
-          +dbox(esc(m.a.name),pa,m.a.rank)
-          +dbox(esc(m.b.name),pb,m.b.rank)
-          +'<div class="b"><div class="k">The day</div><div class="l">'
-             +'Universal day <b>'+core(parts(m.date).m,parts(m.date).d,parts(m.date).y).value+'</b><br>'
-             +'BaZi <b>'+gz(bz.d)+'</b> '+gzEn(bz.d)+'<br>'
-             +B_EN[bz.m.b]+' month · '+gzEn(bz.y)+' year<br>'
-             +'My personal day <b>'+mine.pd.value+'</b>'
-           +'</div></div>'
-          +'<div class="b"><div class="k">The bet</div><div class="l">'
-             +'Pick <b>'+esc(m[m.pick.toLowerCase()].name)+'</b><br>'
-             +'Odds '+(m.odds!=null?(m.odds>0?'+':'')+m.odds:'—')+' · Stake '+(m.stake!=null?'$'+m.stake:'—')+'<br>'
-             +'Result '+(done?(hit?'<b style="color:var(--hit)">HIT</b>':'<b style="color:var(--miss)">MISS</b>'):'<b style="color:var(--pend)">pending</b>')
-             +(p!==null?'<br>P/L <b class="'+(p>=0?'pos':'neg')+'">'+money(p)+'</b>':'')
-           +'</div></div>'
-          +((m.loc||m.dayE||m.notes)?'<div class="b" style="grid-column:1/-1"><div class="k">Energy notes</div><div class="l">'
-             +(m.loc?'<b style="font-family:Inter;font-size:12px">Location:</b> '+esc(m.loc)+'<br>':'')
-             +(m.dayE?'<b style="font-family:Inter;font-size:12px">Day:</b> '+esc(m.dayE)+'<br>':'')
-             +(m.notes?'<b style="font-family:Inter;font-size:12px">Notes:</b> '+esc(m.notes):'')
-           +'</div></div>':'')
-        +'</div>'
-        +'<div class="acts">'
-          +(!done?'<button class="sm" onclick="event.stopPropagation();quickWin('+m.id+',\'A\')">'+esc(m.a.name)+' won</button>'
-                 +'<button class="sm" onclick="event.stopPropagation();quickWin('+m.id+',\'B\')">'+esc(m.b.name)+' won</button>':'')
-          +'<button class="g sm" onclick="event.stopPropagation();openForm(matches.find(x=>x.id==='+m.id+'))">Edit</button>'
-          +'<button class="g sm" onclick="event.stopPropagation();delMatch('+m.id+')">Delete</button>'
-        +'</div>'
-      +'</div>'
-    +'</div>';
-  }).join('');
-}
-function dbox(name,pr,rank){
-  return '<div class="b"><div class="k">'+name+(rank?' · #'+rank:'')+'</div><div class="l">'
-    +'Age <b>'+pr.age+'</b><br>'
-    +'Life path <b>'+pr.lp.value+'</b><br>'
-    +'Personal year <b>'+pr.py.value+'</b><br>'
-    +'Personal month <b>'+pr.pm.value+'</b><br>'
-    +'Personal day <b>'+pr.pd.value+'</b>'
-  +'</div></div>';
-}
-
-/* =========================================================
-   BACKUP
-   ========================================================= */
-function dl(name,text,type){
-  const b=new Blob([text],{type}); const u=URL.createObjectURL(b);
-  const a=document.createElement('a'); a.href=u; a.download=name; a.click(); URL.revokeObjectURL(u);
-}
-const exportJSON=()=>dl('match-ledger-'+todayISO()+'.json',JSON.stringify({matches,players},null,2),'application/json');
-function importJSON(e){
-  const f=e.target.files[0]; if(!f)return;
-  const r=new FileReader();
-  r.onload=()=>{try{const d=JSON.parse(r.result);
-    if(d.matches)matches=d.matches; if(d.players)players=d.players;
-    save(); renderAll(); alert('Imported '+matches.length+' matches.');
-  }catch(err){alert('That file could not be read.');}};
-  r.readAsText(f); e.target.value='';
-}
-function exportCSV(){
-  const H=['event','date','playerA','A_bday','A_rank','A_age','A_LP','A_PY','A_PD','playerB','B_bday','B_rank','B_age','B_LP','B_PY','B_PD','pick','odds','stake','winner','hit','pl','sets','universal_day','bazi_day','my_personal_day','location_energy','day_energy','notes'];
-  const rows=matches.map(m=>{
-    const pa=profile(m.a.bday,m.date), pb=profile(m.b.bday,m.date), mine=profile(ME,m.date), bz=baziOf(m.date);
-    const done=m.winner==='A'||m.winner==='B', hit=done&&m.winner===m.pick;
-    const p=done?payout(m.odds,m.stake,hit):null;
-    return [m.event,m.date,m.a.name,m.a.bday,m.a.rank||'',pa.age,pa.lp.value,pa.py.value,pa.pd.value,
-            m.b.name,m.b.bday,m.b.rank||'',pb.age,pb.lp.value,pb.py.value,pb.pd.value,
-            m.pick,m.odds??'',m.stake??'',m.winner||'pending',done?(hit?'HIT':'MISS'):'',p!==null?p.toFixed(2):'',
-            m.sets||'',core(parts(m.date).m,parts(m.date).d,parts(m.date).y).value,gzEn(bz.d),mine.pd.value,
-            m.loc||'',m.dayE||'',m.notes||''];
+  showBtn.addEventListener("click",function(){
+    if(!current) return;
+    feedbackEl.textContent="Answer: "+current.answer; feedbackEl.className="feedback";
   });
-  const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
-  dl('match-ledger-'+todayISO()+'.csv',[H.map(q).join(','),...rows.map(r=>r.map(q).join(','))].join('\n'),'text/csv');
-}
 
-/* =========================================================
-   BOOT
-   ========================================================= */
-function renderAll(){
-  document.getElementById('hTitle').textContent = filter==='ALL'?'All matches':filter;
-  const S=settled();
-  document.getElementById('hSub').textContent = shown().length
-    ? shown().length+' matches logged' : 'Nothing logged yet';
-  renderRail(); renderStats(); renderLog();
-}
-(function init(){
-  load();
-  setsOpts(); renderStrip(); renderAll();
+  // ---- tricks slideshow ----
+  var TRICKS=[
+    {name:"Multiplying by 9",
+     rule:"The first digit is one less than the number you're multiplying by, and the two digits add up to 9.",
+     eg:"9 × 4 → starts with 3 (one less than 4).\n3 + 6 = 9, so the answer is 36."},
+    {name:"Multiplying by 2 is just doubling",
+     rule:"Multiplying by 2 is the same as adding a number to itself.",
+     eg:"6 × 2 is the same as 6 + 6 = 12."},
+    {name:"Multiplying by 5",
+     rule:"Every answer ends in 5 or 0. Quick way: multiply by 10, then halve.",
+     eg:"8 × 5 → 8 × 10 = 80, then halve → 40."},
+    {name:"Round up and subtract",
+     rule:"When a number is just under a round one, treat it as the round number minus a bit.",
+     eg:"7 × 19 → treat 19 as 20 − 1.\n7 × 20 = 140, minus 7 = 133."},
+    {name:"Attaching zeros",
+     rule:"Multiplying by 10, 100 or 1000 just adds that many zeros on the end.",
+     eg:"42 × 100 = 4200 (two zeros added)."}
+  ];
+  var idx=0;
+  var slideName=document.getElementById("slideName");
+  var slideRule=document.getElementById("slideRule");
+  var slideEg=document.getElementById("slideEg");
+  var counter=document.getElementById("counter");
+  function renderSlide(){
+    var t=TRICKS[idx];
+    slideName.textContent=t.name;
+    slideRule.textContent=t.rule;
+    slideEg.textContent=t.eg;
+    counter.textContent=(idx+1)+" / "+TRICKS.length;
+  }
+  document.getElementById("prev").addEventListener("click",function(){ idx=(idx-1+TRICKS.length)%TRICKS.length; renderSlide(); });
+  document.getElementById("next").addEventListener("click",function(){ idx=(idx+1)%TRICKS.length; renderSlide(); });
+  renderSlide();
+
+  // ---- tabs ----
+  var tabP=document.getElementById("tab-practice"), tabT=document.getElementById("tab-tricks");
+  var panelP=document.getElementById("panel-practice"), panelT=document.getElementById("panel-tricks");
+  function select(which){
+    var p = which==="practice";
+    tabP.setAttribute("aria-selected",p?"true":"false");
+    tabT.setAttribute("aria-selected",p?"false":"true");
+    panelP.hidden=!p; panelT.hidden=p;
+  }
+  tabP.addEventListener("click",function(){ select("practice"); });
+  tabT.addEventListener("click",function(){ select("tricks"); });
 })();
 </script>
-</body>
-</html>
