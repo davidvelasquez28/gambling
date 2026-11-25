@@ -161,6 +161,26 @@
   .arrow:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .counter{font-family:var(--font-num);color:var(--muted);font-size:.9rem;font-variant-numeric:tabular-nums}
 
+  /* slideshow (hands-free) controls */
+  .slide-controls{display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+  .ctl{display:flex;align-items:center;gap:8px;font-size:.9rem;color:var(--muted)}
+  .ctl input[type=number]{
+    width:66px;font-family:var(--font-num);font-size:1rem;
+    background:var(--surface);color:var(--fg);border:1px solid var(--border);
+    border-radius:8px;padding:6px 8px;
+  }
+  .ctl input[type=number]:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+  .ctl.reveal{cursor:pointer}
+  .ctl.reveal input{accent-color:var(--accent);width:16px;height:16px}
+  .s-answer{
+    font-family:var(--font-num);font-weight:600;font-size:1.5rem;color:var(--good);
+    font-variant-numeric:tabular-nums;min-height:1.7em;opacity:0;transition:opacity .2s;
+  }
+  .s-answer.show{opacity:1}
+  .s-bar{height:6px;background:var(--border);border-radius:999px;overflow:hidden;margin-top:14px}
+  .s-bar-fill{height:100%;background:var(--accent);width:100%;transition:width .9s linear}
+  .scount{color:var(--muted);font-size:.85rem;margin-top:8px;text-align:center;font-variant-numeric:tabular-nums}
+
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -170,6 +190,7 @@
 
   <div class="tabs" role="tablist">
     <button class="tab" id="tab-practice" role="tab" aria-selected="true" aria-controls="panel-practice">Practice</button>
+    <button class="tab" id="tab-slideshow" role="tab" aria-selected="false" aria-controls="panel-slideshow">Slideshow</button>
     <button class="tab" id="tab-tricks" role="tab" aria-selected="false" aria-controls="panel-tricks">Tricks</button>
   </div>
 
@@ -199,6 +220,31 @@
     <p class="empty" id="empty">Hit Play to get a problem.</p>
   </section>
 
+  <!-- SLIDESHOW -->
+  <section id="panel-slideshow" role="tabpanel" aria-labelledby="tab-slideshow" hidden>
+    <p class="chips-label">Pick a type, or leave it on Random</p>
+    <div class="chips" id="schips"></div>
+    <div class="slide-controls">
+      <label class="ctl">Seconds each
+        <input id="secs" type="number" min="3" max="600" value="20" inputmode="numeric">
+      </label>
+      <label class="ctl reveal">
+        <input type="checkbox" id="reveal" checked> Reveal answer
+      </label>
+    </div>
+    <button class="play" id="startBtn">Start ▸</button>
+    <p class="kbd-tip"><b>Space</b> to play/pause · <b>→</b> to skip ahead</p>
+
+    <div class="card" id="scard" hidden>
+      <span class="method" id="smethod"></span>
+      <div class="problem" id="sproblem"></div>
+      <div class="s-answer" id="sanswer"></div>
+      <div class="s-bar"><div class="s-bar-fill" id="sbar"></div></div>
+      <div class="scount" id="scount"></div>
+    </div>
+    <p class="empty" id="sempty">Hit Start for a hands-free run.</p>
+  </section>
+
   <!-- TRICKS -->
   <section id="panel-tricks" role="tabpanel" aria-labelledby="tab-tricks" hidden>
     <div class="slide-card">
@@ -219,11 +265,23 @@
   "use strict";
   var ri = function(lo,hi){ return Math.floor(Math.random()*(hi-lo+1))+lo; };
   var money = function(cents){ return "$"+(cents/100).toFixed(2); };
+  var pad2 = function(n){ return (n<10?"0":"")+n; };
 
   // ---- the drillable problem types ----
   // each gen returns either a stacked problem {top, bottom, op} or a one-line {single},
   // plus the answer and a hint that explains the method WITHOUT stating the final answer.
   // money problems set money:true and answerCents.
+  // zodiac year start dates (Chinese New Year). add rows here to expand.
+  var ZODIAC=[
+    {y:2020,a:"Rat",m:1,d:25},
+    {y:2021,a:"Ox",m:2,d:12},
+    {y:2022,a:"Tiger",m:2,d:1},
+    {y:2023,a:"Rabbit",m:1,d:22},
+    {y:2024,a:"Dragon",m:2,d:10},
+    {y:2025,a:"Snake",m:1,d:29},
+    {y:2026,a:"Horse",m:2,d:17}
+  ];
+
   var TYPES = {
     // ---------- multiplying & squaring ----------
     two11: {
@@ -297,14 +355,6 @@
         return {top:a, bottom:b, op:"+", answer:ans, hint:hint};
       }
     },
-    addround:{
-      label:"Add near a round number", method:"Addition near a round number — add the round number, subtract back",
-      gen:function(){
-        var round=ri(2,8)*100, off=ri(1,12), b=round-off, a=ri(120,699), ans=a+b;
-        var hint=b+" is close to "+round+". Add <b>"+round+"</b> to "+a+", then take off <b>"+off+"</b>.";
-        return {top:a, bottom:b, op:"+", answer:ans, hint:hint};
-      }
-    },
     // ---------- subtraction ----------
     sub2:{
       label:"2-digit − 2-digit", method:"Two-digit − two-digit — round up, then add back",
@@ -316,23 +366,20 @@
         return {top:a, bottom:b, op:"−", answer:ans, hint:hint};
       }
     },
-    sub3nb:{
-      label:"3-digit − 3-digit (easy)", method:"Three-digit − three-digit — subtract hundreds, tens, ones",
-      gen:function(){
-        var b1=ri(1,4), b2=ri(0,4), b3=ri(0,4);
-        var t1=b1+ri(1,9-b1), t2=b2+ri(0,9-b2), t3=b3+ri(0,9-b3);
-        var a=t1*100+t2*10+t3, b=b1*100+b2*10+b3, ans=a-b;
-        var hint="Every top digit is bigger than the one below it, so there's no borrowing. Subtract the hundreds, then the tens, then the ones — left to right.";
-        return {top:a, bottom:b, op:"−", answer:ans, hint:hint};
-      }
-    },
     sub3:{
-      label:"3-digit − 3-digit (borrow)", method:"Three-digit − three-digit — subtract a round number, add back the complement",
+      label:"3-digit − 3-digit", method:"Three-digit − three-digit",
       gen:function(){
-        var a=ri(520,999), b=ri(160,a-60);
-        if(b%100===0) b+=ri(1,99);
-        var ans=a-b, up=Math.ceil(b/100)*100, comp=up-b;
-        var hint="Subtract <b>"+up+"</b> from "+a+" (that's too much), then add back the complement <b>"+comp+"</b> — how far "+b+" is from "+up+".";
+        var a=ri(320,999), b=ri(140,a-40), ans=a-b;
+        var a1=Math.floor(a/100), a2=Math.floor(a/10)%10, a3=a%10;
+        var b1=Math.floor(b/100), b2=Math.floor(b/10)%10, b3=b%10;
+        var noBorrow = (a1>=b1 && a2>=b2 && a3>=b3);
+        var hint;
+        if(noBorrow){
+          hint="No borrowing needed — every top digit is bigger than the one below it. Subtract the hundreds, then the tens, then the ones, left to right.";
+        } else {
+          var up=Math.ceil(b/100)*100, comp=up-b;
+          hint="Subtract <b>"+up+"</b> from "+a+" (that's too much), then add back the complement <b>"+comp+"</b> — how far "+b+" is from "+up+".";
+        }
         return {top:a, bottom:b, op:"−", answer:ans, hint:hint};
       }
     },
@@ -358,11 +405,20 @@
         var hint="Change from $"+denom+". The dollars add up to <b>"+(denom-1)+"</b>, and the cents add up to <b>100</b>.";
         return {top:money(denomCents), bottom:money(priceCents), op:"−", money:true, answerCents:ans, hint:hint};
       }
+    },
+    // ---------- memory: zodiac year start dates ----------
+    zodiac:{
+      label:"Zodiac years", method:"Chinese zodiac — when did that year start?",
+      gen:function(){
+        var z=ZODIAC[ri(0,ZODIAC.length-1)];
+        return {single:z.y+" · "+z.a, zdate:true, ansM:z.m, ansD:z.d, ansY:z.y,
+                hint:"Chinese New Year always lands between January 21 and February 20."};
+      }
     }
   };
   var ORDER = ["two11","three11","sq2","same10","teen1","bothteen",
-               "add2","add3","addround",
-               "sub2","sub3nb","sub3","comp","change"];
+               "add2","add3",
+               "sub2","sub3","comp","change"];
 
   // ---- state ----
   var mode = "random";
@@ -376,17 +432,21 @@
     }
     return arr;
   }
-  var bag=[], lastKey=null;
-  function nextRandomKey(){
-    if(bag.length===0){
-      bag=shuffle(ORDER.slice());
-      // avoid the same type landing twice across the seam
-      if(bag.length>1 && bag[bag.length-1]===lastKey){
-        var t=bag[bag.length-1]; bag[bag.length-1]=bag[0]; bag[0]=t;
+  function makeBag(){
+    var bag=[], last=null;
+    return function(){
+      if(bag.length===0){
+        bag=shuffle(ORDER.slice());
+        // avoid the same type landing twice across the seam
+        if(bag.length>1 && bag[bag.length-1]===last){
+          var t=bag[bag.length-1]; bag[bag.length-1]=bag[0]; bag[0]=t;
+        }
       }
-    }
-    var k=bag.pop(); lastKey=k; return k;
+      var k=bag.pop(); last=k; return k;
+    };
   }
+  var nextPracticeKey = makeBag();
+  var nextSlideKey = makeBag();
 
   // ---- build chips ----
   var chips = document.getElementById("chips");
@@ -404,6 +464,7 @@
   }
   chips.appendChild(makeChip("random","Random"));
   ORDER.forEach(function(k){ chips.appendChild(makeChip(k,TYPES[k].label)); });
+  chips.appendChild(makeChip("zodiac","Zodiac years"));
 
   // ---- practice refs ----
   var card=document.getElementById("card");
@@ -416,23 +477,40 @@
   var hintBtn=document.getElementById("hintBtn");
   var showBtn=document.getElementById("showBtn");
 
-  function renderProblem(p){
+  function renderProblemInto(el,p){
     if(p.single){
-      problemEl.className="problem single";
-      problemEl.innerHTML='<span class="pnum">'+p.single+'</span>';
+      el.className="problem single";
+      el.innerHTML='<span class="pnum">'+p.single+'</span>';
     } else {
-      problemEl.className="problem";
-      problemEl.innerHTML=
+      el.className="problem";
+      el.innerHTML=
         '<span class="pop"></span><span class="pnum">'+p.top+'</span>'+
         '<span class="pop">'+p.op+'</span><span class="pnum">'+p.bottom+'</span>';
     }
   }
+  function renderProblem(p){ renderProblemInto(problemEl,p); }
+  function genProblem(modeKey,bagFn){
+    var key = modeKey==="random" ? bagFn() : modeKey;
+    var p = TYPES[key].gen();
+    p._method = TYPES[key].method;
+    return p;
+  }
+  function answerText(p){
+    if(p.zdate) return pad2(p.ansM)+"/"+pad2(p.ansD)+"/"+p.ansY;
+    if(p.money) return money(p.answerCents);
+    return ""+p.answer;
+  }
 
   function play(){
-    var key = mode==="random" ? nextRandomKey() : mode;
+    var key = mode==="random" ? nextPracticeKey() : mode;
     current = TYPES[key].gen();
     methodEl.textContent = TYPES[key].method;
     renderProblem(current);
+    if(current.zdate){
+      answerEl.placeholder="MM/DD/YYYY"; answerEl.setAttribute("inputmode","text");
+    } else {
+      answerEl.placeholder="your answer"; answerEl.setAttribute("inputmode","numeric");
+    }
     answerEl.value="";
     feedbackEl.textContent=""; feedbackEl.className="feedback";
     hintEl.innerHTML=current.hint; hintEl.hidden=true; hintBtn.textContent="Hint";
@@ -444,7 +522,15 @@
     var raw=answerEl.value.replace(/[$,\s]/g,"");
     if(raw===""){ feedbackEl.textContent="Type an answer first."; feedbackEl.className="feedback"; return; }
     var ok;
-    if(current.money){
+    if(current.zdate){
+      var parts=raw.split(/[\/\-.]/);
+      if(parts.length<3 || parts[0]===""||parts[1]===""||parts[2]===""){
+        feedbackEl.textContent="Use the format MM/DD/YYYY."; feedbackEl.className="feedback"; return;
+      }
+      var mm=parseInt(parts[0],10), dd=parseInt(parts[1],10), yy=parseInt(parts[2],10);
+      if(yy<100) yy+=2000;
+      ok = mm===current.ansM && dd===current.ansD && yy===current.ansY;
+    } else if(current.money){
       var f=parseFloat(raw);
       ok = !isNaN(f) && Math.round(f*100)===current.answerCents;
     } else {
@@ -465,7 +551,10 @@
   });
   showBtn.addEventListener("click",function(){
     if(!current) return;
-    var a = current.money ? money(current.answerCents) : current.answer;
+    var a;
+    if(current.zdate){ a = pad2(current.ansM)+"/"+pad2(current.ansD)+"/"+current.ansY; }
+    else if(current.money){ a = money(current.answerCents); }
+    else { a = current.answer; }
     feedbackEl.textContent="Answer: "+a; feedbackEl.className="feedback";
   });
 
@@ -506,26 +595,116 @@
   document.getElementById("next").addEventListener("click",function(){ idx=(idx+1)%TRICKS.length; renderSlide(); });
   renderSlide();
 
-  // ---- tabs ----
-  var tabP=document.getElementById("tab-practice"), tabT=document.getElementById("tab-tricks");
-  var panelP=document.getElementById("panel-practice"), panelT=document.getElementById("panel-tricks");
-  function select(which){
-    var p = which==="practice";
-    tabP.setAttribute("aria-selected",p?"true":"false");
-    tabT.setAttribute("aria-selected",p?"false":"true");
-    panelP.hidden=!p; panelT.hidden=p;
-  }
-  tabP.addEventListener("click",function(){ select("practice"); });
-  tabT.addEventListener("click",function(){ select("tricks"); });
+  // ---- slideshow mode (hands-free, auto-advancing) ----
+  var schips=document.getElementById("schips");
+  var secsInput=document.getElementById("secs");
+  var revealChk=document.getElementById("reveal");
+  var startBtn=document.getElementById("startBtn");
+  var scard=document.getElementById("scard");
+  var sempty=document.getElementById("sempty");
+  var smethod=document.getElementById("smethod");
+  var sproblem=document.getElementById("sproblem");
+  var sanswer=document.getElementById("sanswer");
+  var scount=document.getElementById("scount");
+  var sbar=document.getElementById("sbar");
 
-  // ---- keyboard: arrows for next problem / flipping tricks ----
+  var smode="random", scurrent=null, ssecs=20, sremaining=0, srunning=false, stimer=null;
+
+  function makeSChip(key,label){
+    var b=document.createElement("button");
+    b.className="chip"; b.textContent=label;
+    b.setAttribute("aria-pressed", key===smode?"true":"false");
+    b.addEventListener("click",function(){
+      smode=key;
+      Array.prototype.forEach.call(schips.children,function(c){
+        c.setAttribute("aria-pressed", c===b?"true":"false");
+      });
+    });
+    return b;
+  }
+  schips.appendChild(makeSChip("random","Random"));
+  ORDER.forEach(function(k){ schips.appendChild(makeSChip(k,TYPES[k].label)); });
+  schips.appendChild(makeSChip("zodiac","Zodiac years"));
+
+  function slideReveal(){
+    if(!revealChk.checked){ sanswer.classList.remove("show"); sanswer.textContent=""; return; }
+    var revealAt=Math.min(5, Math.max(1, Math.floor(ssecs/3)));
+    if(scurrent && sremaining<=revealAt){
+      sanswer.textContent="= "+answerText(scurrent);
+      sanswer.classList.add("show");
+    }
+  }
+  function slideMeter(){
+    scount.textContent="Next problem in "+sremaining+"s";
+    sbar.style.width=Math.max(0,sremaining/ssecs*100)+"%";
+    slideReveal();
+  }
+  function slideNext(){
+    scurrent=genProblem(smode, nextSlideKey);
+    smethod.textContent=scurrent._method;
+    renderProblemInto(sproblem, scurrent);
+    sanswer.textContent=""; sanswer.classList.remove("show");
+    ssecs=Math.max(3, Math.min(600, parseInt(secsInput.value,10)||20));
+    sremaining=ssecs;
+    sbar.style.transition="none"; sbar.style.width="100%"; void sbar.offsetWidth; sbar.style.transition="";
+    slideMeter();
+    sempty.hidden=true; scard.hidden=false;
+  }
+  function slideTick(){
+    sremaining--;
+    if(sremaining<=0){ slideNext(); return; }
+    slideMeter();
+  }
+  function slideStart(){
+    if(srunning) return;
+    srunning=true; startBtn.textContent="Pause ❚❚";
+    if(!scurrent) slideNext();
+    stimer=setInterval(slideTick,1000);
+  }
+  function slidePause(){
+    srunning=false;
+    startBtn.textContent=scurrent?"Resume ▸":"Start ▸";
+    if(stimer){ clearInterval(stimer); stimer=null; }
+  }
+  function slideToggle(){ srunning?slidePause():slideStart(); }
+  startBtn.addEventListener("click",slideToggle);
+  revealChk.addEventListener("change",function(){ if(scurrent) slideReveal(); });
+
+  // ---- tabs ----
+  var TABS=[["tab-practice","panel-practice","practice"],
+            ["tab-slideshow","panel-slideshow","slideshow"],
+            ["tab-tricks","panel-tricks","tricks"]];
+  function select(name){
+    TABS.forEach(function(t){
+      var on=(t[2]===name);
+      document.getElementById(t[0]).setAttribute("aria-selected",on?"true":"false");
+      document.getElementById(t[1]).hidden=!on;
+    });
+    if(name!=="slideshow") slidePause();
+  }
+  function currentTab(){
+    for(var i=0;i<TABS.length;i++){
+      if(document.getElementById(TABS[i][0]).getAttribute("aria-selected")==="true") return TABS[i][2];
+    }
+    return "practice";
+  }
+  TABS.forEach(function(t){
+    document.getElementById(t[0]).addEventListener("click",function(){ select(t[2]); });
+  });
+
+  // ---- keyboard shortcuts ----
   document.addEventListener("keydown",function(e){
-    var practiceActive = tabP.getAttribute("aria-selected")==="true";
-    if(practiceActive){
+    var tag=(e.target.tagName||"").toLowerCase();
+    var typing = tag==="input"||tag==="textarea"||tag==="select";
+    var t=currentTab();
+    if(t==="practice"){
       if(e.key==="ArrowRight"){ e.preventDefault(); play(); }
-    } else {
+    } else if(t==="tricks"){
       if(e.key==="ArrowRight"){ e.preventDefault(); idx=(idx+1)%TRICKS.length; renderSlide(); }
       else if(e.key==="ArrowLeft"){ e.preventDefault(); idx=(idx-1+TRICKS.length)%TRICKS.length; renderSlide(); }
+    } else if(t==="slideshow"){
+      if((e.key===" "||e.key==="Spacebar")&&!typing){ e.preventDefault(); slideToggle(); }
+      else if(e.key==="ArrowRight"&&!typing){ e.preventDefault(); if(srunning) slideNext(); }
     }
   });
 })();
