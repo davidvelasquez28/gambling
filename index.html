@@ -91,11 +91,16 @@
     color:var(--accent);background:var(--accent-soft);
     padding:5px 11px;border-radius:999px;margin-bottom:16px;
   }
+  /* stacked, right-aligned like working it out on paper */
   .problem{
+    display:inline-grid;grid-template-columns:auto auto;
+    column-gap:.5em;justify-items:end;
     font-family:var(--font-num);font-weight:600;
     font-size:clamp(2.2rem,11vw,3.2rem);letter-spacing:-.01em;
     font-variant-numeric:tabular-nums;margin:2px 0 18px;
+    padding:0 .12em .06em;border-bottom:3px solid var(--fg);
   }
+  .problem .pop{justify-self:start}
   .answer-row{display:flex;gap:10px;flex-wrap:wrap}
   .answer-row input{
     font-family:var(--font-num);font-size:1.3rem;font-variant-numeric:tabular-nums;
@@ -208,9 +213,10 @@
 (function(){
   "use strict";
   var ri = function(lo,hi){ return Math.floor(Math.random()*(hi-lo+1))+lo; };
-  var pad2 = function(x){ return ("0"+x).slice(-2); };
 
   // ---- the drillable problem types ----
+  // each gen returns top/bottom (the two stacked numbers), answer, and a hint
+  // that explains the method WITHOUT stating the final answer.
   var TYPES = {
     two11: {
       label:"2-digit × 11",
@@ -218,11 +224,11 @@
       gen:function(){
         var a=ri(10,99), ans=a*11, t=Math.floor(a/10), o=a%10, s=t+o, hint;
         if(s<10){
-          hint="Add the two digits of "+a+": <b>"+t+" + "+o+" = "+s+"</b>. Drop it in the middle → "+t+" "+s+" "+o+" = <b>"+ans+"</b>.";
+          hint="Add the two digits of "+a+": <b>"+t+" + "+o+"</b>. Drop that sum in the middle, between the "+t+" and the "+o+".";
         } else {
-          hint="Add the two digits of "+a+": <b>"+t+" + "+o+" = "+s+"</b>. That's two digits, so write the "+(s%10)+" and carry the 1 left: "+t+" + 1 = "+(t+1)+". → <b>"+ans+"</b>.";
+          hint="Add the two digits of "+a+": <b>"+t+" + "+o+"</b>. That comes to 10 or more, so write just its last digit in the middle and carry the 1 onto the "+t+".";
         }
-        return {display:a+" × 11", answer:ans, hint:hint};
+        return {top:a, bottom:11, answer:ans, hint:hint};
       }
     },
     three11:{
@@ -231,8 +237,8 @@
       gen:function(){
         var a=ri(100,999), ans=a*11;
         var d1=Math.floor(a/100), d2=Math.floor(a/10)%10, d3=a%10;
-        var hint="Keep the first digit ("+d1+") and last digit ("+d3+"). For the middle, add each side-by-side pair: <b>"+d1+"+"+d2+"="+(d1+d2)+"</b> and <b>"+d2+"+"+d3+"="+(d2+d3)+"</b>. Place them in, carrying left whenever a sum hits 10 or more. → <b>"+ans+"</b>.";
-        return {display:a+" × 11", answer:ans, hint:hint};
+        var hint="Keep the first digit ("+d1+") and the last digit ("+d3+"). For the middle, add each side-by-side pair: <b>"+d1+"+"+d2+"</b> and <b>"+d2+"+"+d3+"</b>. Drop those between them, carrying left whenever a pair hits 10 or more.";
+        return {top:a, bottom:11, answer:ans, hint:hint};
       }
     },
     sq2:{
@@ -240,8 +246,8 @@
       method:"Squaring a two-digit number ending in 5",
       gen:function(){
         var t=ri(1,9), n=t*10+5, ans=n*n;
-        var hint="Take the first digit <b>"+t+"</b>, times the next number up <b>"+(t+1)+"</b>: "+t+"×"+(t+1)+"="+(t*(t+1))+". Stick 25 on the end → <b>"+ans+"</b>.";
-        return {display:n+"²", answer:ans, hint:hint};
+        var hint="Take the first digit <b>"+t+"</b>, times the next number up <b>"+(t+1)+"</b>. Then stick 25 on the end.";
+        return {top:n, bottom:n, answer:ans, hint:hint};
       }
     },
     sq3:{
@@ -249,8 +255,8 @@
       method:"Squaring a three-digit number ending in 5",
       gen:function(){
         var h=ri(10,99), n=h*10+5, ans=n*n;
-        var hint="Take <b>"+h+"</b> (the number without the last 5), times the next number up <b>"+(h+1)+"</b>: "+h+"×"+(h+1)+"="+(h*(h+1))+". Attach 25 → <b>"+ans+"</b>.";
-        return {display:n+"²", answer:ans, hint:hint};
+        var hint="Take <b>"+h+"</b> (the number without its last 5), times the next number up <b>"+(h+1)+"</b>. Then attach 25 on the end.";
+        return {top:n, bottom:n, answer:ans, hint:hint};
       }
     },
     same10:{
@@ -259,9 +265,8 @@
       gen:function(){
         var f=ri(1,9), a1=ri(1,9), a2=10-a1;
         var n1=f*10+a1, n2=f*10+a2, ans=n1*n2;
-        var start=f*(f+1), lastp=a1*a2;
-        var hint="First digit <b>"+f+"</b> times the next number up <b>"+(f+1)+"</b> = "+start+". Then attach the last digits multiplied: "+a1+"×"+a2+"="+lastp+", as two digits ("+pad2(lastp)+"). → <b>"+ans+"</b>.";
-        return {display:n1+" × "+n2, answer:ans, hint:hint};
+        var hint="First digit <b>"+f+"</b> times the next number up <b>"+(f+1)+"</b>. Then attach the two last digits multiplied: <b>"+a1+" × "+a2+"</b> (write it as two digits).";
+        return {top:n1, bottom:n2, answer:ans, hint:hint};
       }
     },
     teen1:{
@@ -269,8 +274,8 @@
       method:"A number from 11 to 19 × a single digit",
       gen:function(){
         var t=ri(11,19), s=ri(2,9), ans=t*s, o=t%10;
-        var hint=s+" × 10 = "+(s*10)+". "+s+" × "+o+" = "+(s*o)+". Add them: <b>"+(s*10)+" + "+(s*o)+" = "+ans+"</b>.";
-        return {display:t+" × "+s, answer:ans, hint:hint};
+        var hint="Do <b>"+s+" × 10</b>, then <b>"+s+" × "+o+"</b>. Add those two results together.";
+        return {top:t, bottom:s, answer:ans, hint:hint};
       }
     },
     bothteen:{
@@ -278,9 +283,9 @@
       method:"Two numbers both between 10 and 20",
       gen:function(){
         var a=ri(11,19), b=ri(11,19), ans=a*b;
-        var bo=b%10, step=(a+bo)*10, lastp=(a%10)*(b%10);
-        var hint="Take "+a+" and add "+b+"'s last digit ("+bo+"): "+a+"+"+bo+"="+(a+bo)+". Times 10 → "+step+". Then add the last digits multiplied: "+(a%10)+"×"+(b%10)+"="+lastp+". <b>"+step+" + "+lastp+" = "+ans+"</b>.";
-        return {display:a+" × "+b, answer:ans, hint:hint};
+        var bo=b%10;
+        var hint="Take "+a+" and add "+b+"'s last digit ("+bo+"): <b>"+a+" + "+bo+"</b>. Multiply that by 10. Then add the last digits multiplied: <b>"+(a%10)+" × "+(b%10)+"</b>.";
+        return {top:a, bottom:b, answer:ans, hint:hint};
       }
     }
   };
@@ -318,11 +323,17 @@
   var hintBtn=document.getElementById("hintBtn");
   var showBtn=document.getElementById("showBtn");
 
+  function renderProblem(top,bottom){
+    problemEl.innerHTML =
+      '<span class="pop"></span><span class="pnum">'+top+'</span>'+
+      '<span class="pop">×</span><span class="pnum">'+bottom+'</span>';
+  }
+
   function play(){
     var key = mode==="random" ? ORDER[ri(0,ORDER.length-1)] : mode;
     current = TYPES[key].gen();
     methodEl.textContent = TYPES[key].method;
-    problemEl.textContent = current.display;
+    renderProblem(current.top, current.bottom);
     answerEl.value="";
     feedbackEl.textContent=""; feedbackEl.className="feedback";
     hintEl.innerHTML=current.hint; hintEl.hidden=true; hintBtn.textContent="Hint";
