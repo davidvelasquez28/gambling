@@ -80,6 +80,8 @@
   .play:hover{filter:brightness(1.07)}
   .play:active{transform:translateY(1px)}
   .play:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  .kbd-tip{color:var(--muted);font-size:.85rem;text-align:center;margin:10px 0 0}
+  .kbd-tip b{font-family:var(--font-num);color:var(--accent)}
 
   /* problem card */
   .card{
@@ -177,6 +179,7 @@
     <div class="chips" id="chips"></div>
 
     <button class="play" id="play">Play ▸</button>
+    <p class="kbd-tip">Press <b>→</b> for the next problem</p>
 
     <div class="card" id="card" hidden>
       <span class="method" id="method"></span>
@@ -514,5 +517,16 @@
   }
   tabP.addEventListener("click",function(){ select("practice"); });
   tabT.addEventListener("click",function(){ select("tricks"); });
+
+  // ---- keyboard: arrows for next problem / flipping tricks ----
+  document.addEventListener("keydown",function(e){
+    var practiceActive = tabP.getAttribute("aria-selected")==="true";
+    if(practiceActive){
+      if(e.key==="ArrowRight"){ e.preventDefault(); play(); }
+    } else {
+      if(e.key==="ArrowRight"){ e.preventDefault(); idx=(idx+1)%TRICKS.length; renderSlide(); }
+      else if(e.key==="ArrowLeft"){ e.preventDefault(); idx=(idx-1+TRICKS.length)%TRICKS.length; renderSlide(); }
+    }
+  });
 })();
 </script>
