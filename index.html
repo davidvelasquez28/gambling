@@ -101,6 +101,8 @@
     padding:0 .12em .06em;border-bottom:3px solid var(--fg);
   }
   .problem .pop{justify-self:start}
+  /* a squared number is shown on one line, no stacking rule */
+  .problem.single{display:inline-block;border-bottom:none;padding-bottom:0}
   .answer-row{display:flex;gap:10px;flex-wrap:wrap}
   .answer-row input{
     font-family:var(--font-num);font-size:1.3rem;font-variant-numeric:tabular-nums;
@@ -213,87 +215,175 @@
 (function(){
   "use strict";
   var ri = function(lo,hi){ return Math.floor(Math.random()*(hi-lo+1))+lo; };
+  var money = function(cents){ return "$"+(cents/100).toFixed(2); };
 
   // ---- the drillable problem types ----
-  // each gen returns top/bottom (the two stacked numbers), answer, and a hint
-  // that explains the method WITHOUT stating the final answer.
+  // each gen returns either a stacked problem {top, bottom, op} or a one-line {single},
+  // plus the answer and a hint that explains the method WITHOUT stating the final answer.
+  // money problems set money:true and answerCents.
   var TYPES = {
+    // ---------- multiplying & squaring ----------
     two11: {
-      label:"2-digit × 11",
-      method:"Two-digit number × 11",
+      label:"2-digit × 11", method:"Two-digit number × 11",
       gen:function(){
-        var a=ri(10,99), ans=a*11, t=Math.floor(a/10), o=a%10, s=t+o, hint;
-        if(s<10){
+        var a=ri(10,99), ans=a*11, t=Math.floor(a/10), o=a%10, hint;
+        if(t+o<10){
           hint="Add the two digits of "+a+": <b>"+t+" + "+o+"</b>. Drop that sum in the middle, between the "+t+" and the "+o+".";
         } else {
           hint="Add the two digits of "+a+": <b>"+t+" + "+o+"</b>. That comes to 10 or more, so write just its last digit in the middle and carry the 1 onto the "+t+".";
         }
-        return {top:a, bottom:11, answer:ans, hint:hint};
+        return {top:a, bottom:11, op:"×", answer:ans, hint:hint};
       }
     },
     three11:{
-      label:"3-digit × 11",
-      method:"Three-digit number × 11",
+      label:"3-digit × 11", method:"Three-digit number × 11",
       gen:function(){
         var a=ri(100,999), ans=a*11;
         var d1=Math.floor(a/100), d2=Math.floor(a/10)%10, d3=a%10;
         var hint="Keep the first digit ("+d1+") and the last digit ("+d3+"). For the middle, add each side-by-side pair: <b>"+d1+"+"+d2+"</b> and <b>"+d2+"+"+d3+"</b>. Drop those between them, carrying left whenever a pair hits 10 or more.";
-        return {top:a, bottom:11, answer:ans, hint:hint};
+        return {top:a, bottom:11, op:"×", answer:ans, hint:hint};
       }
     },
     sq2:{
-      label:"Square ⋯5 (2-digit)",
-      method:"Squaring a two-digit number ending in 5",
+      label:"Square ⋯5", method:"Squaring a two-digit number ending in 5",
       gen:function(){
         var t=ri(1,9), n=t*10+5, ans=n*n;
         var hint="Take the first digit <b>"+t+"</b>, times the next number up <b>"+(t+1)+"</b>. Then stick 25 on the end.";
-        return {top:n, bottom:n, answer:ans, hint:hint};
-      }
-    },
-    sq3:{
-      label:"Square ⋯5 (3-digit)",
-      method:"Squaring a three-digit number ending in 5",
-      gen:function(){
-        var h=ri(10,99), n=h*10+5, ans=n*n;
-        var hint="Take <b>"+h+"</b> (the number without its last 5), times the next number up <b>"+(h+1)+"</b>. Then attach 25 on the end.";
-        return {top:n, bottom:n, answer:ans, hint:hint};
+        return {single:n+"²", answer:ans, hint:hint};
       }
     },
     same10:{
-      label:"Same first, last add to 10",
-      method:"Same first digit, last digits add to 10",
+      label:"Same first, last add to 10", method:"Same first digit, last digits add to 10",
       gen:function(){
         var f=ri(1,9), a1=ri(1,9), a2=10-a1;
         var n1=f*10+a1, n2=f*10+a2, ans=n1*n2;
         var hint="First digit <b>"+f+"</b> times the next number up <b>"+(f+1)+"</b>. Then attach the two last digits multiplied: <b>"+a1+" × "+a2+"</b> (write it as two digits).";
-        return {top:n1, bottom:n2, answer:ans, hint:hint};
+        return {top:n1, bottom:n2, op:"×", answer:ans, hint:hint};
       }
     },
     teen1:{
-      label:"11–19 × single digit",
-      method:"A number from 11 to 19 × a single digit",
+      label:"11–19 × single digit", method:"A number from 11 to 19 × a single digit",
       gen:function(){
         var t=ri(11,19), s=ri(2,9), ans=t*s, o=t%10;
         var hint="Do <b>"+s+" × 10</b>, then <b>"+s+" × "+o+"</b>. Add those two results together.";
-        return {top:t, bottom:s, answer:ans, hint:hint};
+        return {top:t, bottom:s, op:"×", answer:ans, hint:hint};
       }
     },
     bothteen:{
-      label:"Both 10–20",
-      method:"Two numbers both between 10 and 20",
+      label:"Both 10–20", method:"Two numbers both between 10 and 20",
       gen:function(){
-        var a=ri(11,19), b=ri(11,19), ans=a*b;
-        var bo=b%10;
+        var a=ri(11,19), b=ri(11,19), ans=a*b, bo=b%10;
         var hint="Take "+a+" and add "+b+"'s last digit ("+bo+"): <b>"+a+" + "+bo+"</b>. Multiply that by 10. Then add the last digits multiplied: <b>"+(a%10)+" × "+(b%10)+"</b>.";
-        return {top:a, bottom:b, answer:ans, hint:hint};
+        return {top:a, bottom:b, op:"×", answer:ans, hint:hint};
+      }
+    },
+    // ---------- addition ----------
+    add2:{
+      label:"2-digit + 2-digit", method:"Two-digit + two-digit — tens first, then ones",
+      gen:function(){
+        var a=ri(21,89), b=ri(21,89), ans=a+b, tens=Math.floor(b/10)*10, ones=b%10;
+        var hint="Start with "+a+". Add "+b+"'s tens (<b>"+tens+"</b>), then add its ones (<b>"+ones+"</b>) — left to right.";
+        return {top:a, bottom:b, op:"+", answer:ans, hint:hint};
+      }
+    },
+    add3:{
+      label:"3-digit + 3-digit", method:"Three-digit + three-digit — hundreds first, then the rest",
+      gen:function(){
+        var a=ri(150,849), b=ri(150,849), ans=a+b, h=Math.floor(b/100)*100, rest=b%100;
+        var hint="Start with "+a+". Add "+b+"'s hundreds (<b>"+h+"</b>), then add the rest (<b>"+rest+"</b>) — left to right.";
+        return {top:a, bottom:b, op:"+", answer:ans, hint:hint};
+      }
+    },
+    addround:{
+      label:"Add near a round number", method:"Addition near a round number — add the round number, subtract back",
+      gen:function(){
+        var round=ri(2,8)*100, off=ri(1,12), b=round-off, a=ri(120,699), ans=a+b;
+        var hint=b+" is close to "+round+". Add <b>"+round+"</b> to "+a+", then take off <b>"+off+"</b>.";
+        return {top:a, bottom:b, op:"+", answer:ans, hint:hint};
+      }
+    },
+    // ---------- subtraction ----------
+    sub2:{
+      label:"2-digit − 2-digit", method:"Two-digit − two-digit — round up, then add back",
+      gen:function(){
+        var a=ri(42,99), b=ri(13,a-2);
+        if(b%10===0) b+=1;
+        var ans=a-b, up=Math.ceil(b/10)*10, back=up-b;
+        var hint="Round "+b+" up to <b>"+up+"</b>. Subtract "+up+" from "+a+", then add back <b>"+back+"</b>.";
+        return {top:a, bottom:b, op:"−", answer:ans, hint:hint};
+      }
+    },
+    sub3nb:{
+      label:"3-digit − 3-digit (easy)", method:"Three-digit − three-digit — subtract hundreds, tens, ones",
+      gen:function(){
+        var b1=ri(1,4), b2=ri(0,4), b3=ri(0,4);
+        var t1=b1+ri(1,9-b1), t2=b2+ri(0,9-b2), t3=b3+ri(0,9-b3);
+        var a=t1*100+t2*10+t3, b=b1*100+b2*10+b3, ans=a-b;
+        var hint="Every top digit is bigger than the one below it, so there's no borrowing. Subtract the hundreds, then the tens, then the ones — left to right.";
+        return {top:a, bottom:b, op:"−", answer:ans, hint:hint};
+      }
+    },
+    sub3:{
+      label:"3-digit − 3-digit (borrow)", method:"Three-digit − three-digit — subtract a round number, add back the complement",
+      gen:function(){
+        var a=ri(520,999), b=ri(160,a-60);
+        if(b%100===0) b+=ri(1,99);
+        var ans=a-b, up=Math.ceil(b/100)*100, comp=up-b;
+        var hint="Subtract <b>"+up+"</b> from "+a+" (that's too much), then add back the complement <b>"+comp+"</b> — how far "+b+" is from "+up+".";
+        return {top:a, bottom:b, op:"−", answer:ans, hint:hint};
+      }
+    },
+    comp:{
+      label:"Complements", method:"Complement — how far from the round number",
+      gen:function(){
+        var hundred = Math.random()<0.5;
+        var round = hundred?100:1000;
+        var n = hundred?ri(11,98):ri(111,989);
+        var ans=round-n;
+        var hint = hundred
+          ? "How far is "+n+" from 100? The first digit climbs to 9, the last digit climbs to 10."
+          : "How far is "+n+" from 1000? The digits climb to 9, 9, then 10 at the end.";
+        return {top:round, bottom:n, op:"−", answer:ans, hint:hint};
+      }
+    },
+    change:{
+      label:"Making change", method:"Making change — complements with money",
+      gen:function(){
+        var denoms=[10,20,100], denom=denoms[ri(0,2)], denomCents=denom*100;
+        var dollars=ri(1,denom-1), cents=ri(1,99), priceCents=dollars*100+cents;
+        var ans=denomCents-priceCents;
+        var hint="Change from $"+denom+". The dollars add up to <b>"+(denom-1)+"</b>, and the cents add up to <b>100</b>.";
+        return {top:money(denomCents), bottom:money(priceCents), op:"−", money:true, answerCents:ans, hint:hint};
       }
     }
   };
-  var ORDER = ["two11","three11","sq2","sq3","same10","teen1","bothteen"];
+  var ORDER = ["two11","three11","sq2","same10","teen1","bothteen",
+               "add2","add3","addround",
+               "sub2","sub3nb","sub3","comp","change"];
 
   // ---- state ----
   var mode = "random";
   var current = null;
+
+  // ---- even "bag" shuffle so Random deals one of each before repeating ----
+  function shuffle(arr){
+    for(var i=arr.length-1;i>0;i--){
+      var j=Math.floor(Math.random()*(i+1)), tmp=arr[i];
+      arr[i]=arr[j]; arr[j]=tmp;
+    }
+    return arr;
+  }
+  var bag=[], lastKey=null;
+  function nextRandomKey(){
+    if(bag.length===0){
+      bag=shuffle(ORDER.slice());
+      // avoid the same type landing twice across the seam
+      if(bag.length>1 && bag[bag.length-1]===lastKey){
+        var t=bag[bag.length-1]; bag[bag.length-1]=bag[0]; bag[0]=t;
+      }
+    }
+    var k=bag.pop(); lastKey=k; return k;
+  }
 
   // ---- build chips ----
   var chips = document.getElementById("chips");
@@ -323,17 +413,23 @@
   var hintBtn=document.getElementById("hintBtn");
   var showBtn=document.getElementById("showBtn");
 
-  function renderProblem(top,bottom){
-    problemEl.innerHTML =
-      '<span class="pop"></span><span class="pnum">'+top+'</span>'+
-      '<span class="pop">×</span><span class="pnum">'+bottom+'</span>';
+  function renderProblem(p){
+    if(p.single){
+      problemEl.className="problem single";
+      problemEl.innerHTML='<span class="pnum">'+p.single+'</span>';
+    } else {
+      problemEl.className="problem";
+      problemEl.innerHTML=
+        '<span class="pop"></span><span class="pnum">'+p.top+'</span>'+
+        '<span class="pop">'+p.op+'</span><span class="pnum">'+p.bottom+'</span>';
+    }
   }
 
   function play(){
-    var key = mode==="random" ? ORDER[ri(0,ORDER.length-1)] : mode;
+    var key = mode==="random" ? nextRandomKey() : mode;
     current = TYPES[key].gen();
     methodEl.textContent = TYPES[key].method;
-    renderProblem(current.top, current.bottom);
+    renderProblem(current);
     answerEl.value="";
     feedbackEl.textContent=""; feedbackEl.className="feedback";
     hintEl.innerHTML=current.hint; hintEl.hidden=true; hintBtn.textContent="Hint";
@@ -342,9 +438,16 @@
   }
   function check(){
     if(!current) return;
-    var val=answerEl.value.replace(/[,\s]/g,"");
-    if(val===""){ feedbackEl.textContent="Type an answer first."; feedbackEl.className="feedback"; return; }
-    if(parseInt(val,10)===current.answer){
+    var raw=answerEl.value.replace(/[$,\s]/g,"");
+    if(raw===""){ feedbackEl.textContent="Type an answer first."; feedbackEl.className="feedback"; return; }
+    var ok;
+    if(current.money){
+      var f=parseFloat(raw);
+      ok = !isNaN(f) && Math.round(f*100)===current.answerCents;
+    } else {
+      ok = parseInt(raw,10)===current.answer;
+    }
+    if(ok){
       feedbackEl.textContent="Correct ✓"; feedbackEl.className="feedback good";
     } else {
       feedbackEl.textContent="Not quite — try again."; feedbackEl.className="feedback bad";
@@ -359,7 +462,8 @@
   });
   showBtn.addEventListener("click",function(){
     if(!current) return;
-    feedbackEl.textContent="Answer: "+current.answer; feedbackEl.className="feedback";
+    var a = current.money ? money(current.answerCents) : current.answer;
+    feedbackEl.textContent="Answer: "+a; feedbackEl.className="feedback";
   });
 
   // ---- tricks slideshow ----
@@ -373,12 +477,15 @@
     {name:"Multiplying by 5",
      rule:"Every answer ends in 5 or 0. Quick way: multiply by 10, then halve.",
      eg:"8 × 5 → 8 × 10 = 80, then halve → 40."},
-    {name:"Round up and subtract",
-     rule:"When a number is just under a round one, treat it as the round number minus a bit.",
-     eg:"7 × 19 → treat 19 as 20 − 1.\n7 × 20 = 140, minus 7 = 133."},
     {name:"Attaching zeros",
      rule:"Multiplying by 10, 100 or 1000 just adds that many zeros on the end.",
-     eg:"42 × 100 = 4200 (two zeros added)."}
+     eg:"42 × 100 = 4200 (two zeros added)."},
+    {name:"Work left to right",
+     rule:"Add and subtract starting from the biggest digits, not the smallest. You hear the answer as you go and get a feel for its size right away.",
+     eg:"54 × 7 → start with 7 × 50 = 350,\nthen 7 × 4 = 28 → 378."},
+    {name:"Hard problem? Turn it inside out",
+     rule:"A messy addition with lots of carrying becomes an easy subtraction, and a messy subtraction becomes an easy addition.",
+     eg:"766 + 489 → add 500, take off 11.\n835 − 497 → take off 500, add back 3."}
   ];
   var idx=0;
   var slideName=document.getElementById("slideName");
